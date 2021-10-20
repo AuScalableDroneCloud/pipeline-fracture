@@ -2,7 +2,7 @@
 """
 GDAL workaround for Polyline_to_Shape.m
 Geometry is read from csv file and written to shp
-Line geometries are simplified simplified based on teh tolerance given
+Line geometries are simplified based on the tolerance given
 
 @author: kel321
 """
@@ -10,6 +10,7 @@ Line geometries are simplified simplified based on teh tolerance given
 import sys
 import csv
 from osgeo import gdal
+from osgeo import osr
 from osgeo import ogr
 
 def WritePolyline2SHP(inputFile, outputFile, refWKT = None, tolerance=1e-3): 
@@ -49,8 +50,8 @@ def WritePolyline2SHP(inputFile, outputFile, refWKT = None, tolerance=1e-3):
     lyr = ds.GetLayer(0)
     if lyr is None:
         if refWKT:
-            srs = ogr.SpatialReference()
-            srs.ImportFromWKT(refWKT)
+            srs = osr.SpatialReference()
+            #srs.ImportFromWkt(refWKT)
             lyr = ds.CreateLayer( "fitted_polylines", srs, ogr.wkbLineString)  
         else:
             lyr = ds.CreateLayer( "fitted_polylines", None, ogr.wkbLineString)
@@ -77,4 +78,4 @@ def WritePolyline2SHP(inputFile, outputFile, refWKT = None, tolerance=1e-3):
     ds = None
 
 if __name__ == '__main__':
-    WritePolyline2SHP('C:\DRONE\Python_API\TEST_1\output\Fitted_Curves\Bingie_Bingie_area2.txt','output.shp')
+    WritePolyline2SHP('C:\DRONE\Python_API\TEST_1\output\Fitted_Curves\Bingie_Bingie_area2.txt','output.shp',1)
