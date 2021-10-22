@@ -50,9 +50,10 @@ def WritePolyline2SHP(inputFile, outputFile, refWKT = None, tolerance=1e-3):
     lyr = ds.GetLayer(0)
     if lyr is None:
         if refWKT:
-            srs = osr.SpatialReference()
-            #srs.ImportFromWkt(refWKT)
-            lyr = ds.CreateLayer( "fitted_polylines", srs, ogr.wkbLineString)  
+            print("refWKT")
+            SpatialRef = osr.SpatialReference()
+            SpatialRef.ImportFromWkt(refWKT)
+            lyr = ds.CreateLayer( "fitted_polylines", SpatialRef, ogr.wkbLineString)  
         else:
             lyr = ds.CreateLayer( "fitted_polylines", None, ogr.wkbLineString)
         if lyr is None:
@@ -69,7 +70,7 @@ def WritePolyline2SHP(inputFile, outputFile, refWKT = None, tolerance=1e-3):
             if refWKT is None:
                 line.AddPoint(-p[0], p[1])  #need to flip x coodinates in case of non-georeferenced data
             else:
-                line.AddPoint(p[0], p[1])
+                line.AddPoint(-p[0], p[1])
         simpleLine = line.Simplify(tolerance)   #simplyfy the line geometry
         simpleLine.SwapXY
         feat.SetGeometry(simpleLine)
@@ -78,4 +79,15 @@ def WritePolyline2SHP(inputFile, outputFile, refWKT = None, tolerance=1e-3):
     ds = None
 
 if __name__ == '__main__':
-    WritePolyline2SHP('C:\DRONE\Python_API\TEST_1\output\Fitted_Curves\Bingie_Bingie_area2.txt','output.shp',1)
+    # create WGS84 Spatial Reference
+    sr = osr.SpatialReference()
+    sr.ImportFromEPSG(4326)
+    refWKT = sr.ExportToWkt()
+    print(refWKT)
+    
+    inputTXT = 'C:\DRONE\Python_API\TEST_1\output\Fitted_Curves\Bingie_Bingie_area2.txt'
+    outputFilename = 'output.shp'
+   # refWKT = None
+    tolerance = 1e-3
+    
+    WritePolyline2SHP(inputTXT, outputFilename, refWKT, tolerance)
