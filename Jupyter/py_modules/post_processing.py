@@ -232,8 +232,28 @@ def CleanUp(image, connectivity, min_size):
             img2[output == i + 1] = 1
     skeleton = binary_closing(skeletonize(img2))
     return(skeleton)
-    
-def WritePoints2SHP(graph, outputFile, refWKT = None, tolerance=1e-3): 
+
+
+def ConvertCoodinates(pt, dataset):
+    '''
+    adfGeoTransform[0] /* top left x */
+    adfGeoTransform[1] /* w-e pixel resolution */
+    adfGeoTransform[2] /* 0 */
+    adfGeoTransform[3] /* top left y */
+    adfGeoTransform[4] /* 0 */
+    adfGeoTransform[5] /* n-s pixel resolution (negative value) */
+    '''    
+    if (dataset):
+        transform = dataset.GetGeoTransform()
+        X = float(transform[0] + int(pt[0]) * transform[1] )
+        Y = float(transform[3] + (int(pt[1]) * transform[5] ))
+        point = (X,Y)
+        return(point)
+    else:
+        point = (pt[0],-pt[1])
+        return(point)
+        
+def WritePoints2SHP(graph, outputFile, dataset = None): 
     #first convert the graph vertices into numpy array
     nodes = graph.nodes()
     points = np.array([nodes[i]['o'] for i in nodes])
@@ -251,17 +271,17 @@ def WritePoints2SHP(graph, outputFile, refWKT = None, tolerance=1e-3):
     ds = drv.Create(outputFile, 0, 0, 0, gdal.GDT_Unknown )
     if ds is None:
         print ("Creation of output file failed. Trying to open file...\n")
-        ds = drv.Open(outputFile, 1) # 0 means read-only. 1 means writeable.
+        ds = ogr.Open(outputFile, 1) # 0 means read-only. 1 means writeable.
         if ds is None:
             print ("Creation of output file failed.\n")
             sys.exit( 1 )
 # get layer and check if reference is given (write non-georeferenced shp if not defined)     
     lyr = ds.GetLayer(0)
     if lyr is None:
-        if refWKT:
-            print("refWKT")
-            SpatialRef = osr.SpatialReference()
-            SpatialRef.ImportFromWkt(refWKT)
+        if dataset:
+            refWKT = dataset.GetProjection()
+            SpatialRef = osr.SpatialReference()  # makes an empty spatial ref object
+            SpatialRef.ImportFromWkt(refWKT) 
             lyr = ds.CreateLayer( "graph_vertices", SpatialRef, ogr.wkbPoint)  
         else:
             lyr = ds.CreateLayer( "graph_vertices", None, ogr.wkbPoint)
@@ -277,14 +297,15 @@ def WritePoints2SHP(graph, outputFile, refWKT = None, tolerance=1e-3):
             feat.SetField( "id", i )
             feat.SetField( "degree", degrees[i] )
             point = ogr.Geometry(ogr.wkbPoint)
-            point.AddPoint(float(p[0]), float(p[1]))
-            #point.SwapXY
+            POINT = (p[1], p[0])
+            pt = ConvertCoodinates(POINT, dataset)
+            point.AddPoint(float(pt[0]), float(pt[1]))     
             feat.SetGeometry(point)
             lyr.CreateFeature(feat) 
             feat.Destroy()
     ds = None
 
-def WritePolyline2SHP(graph, outputFile, refWKT = None, tolerance=1e-3): 
+def WritePolyline2SHP(graph, outputFile, dataset = None, tolerance=1e-3): 
     #first convert the graph edges into a list of numpy arrays lists
     poly_lines = []
     for (s,e) in graph.edges():
@@ -302,7 +323,7 @@ def WritePolyline2SHP(graph, outputFile, refWKT = None, tolerance=1e-3):
     ds = drv.Create(outputFile, 0, 0, 0, gdal.GDT_Unknown )
     if ds is None:
         print ("Creation of output file failed. Trying to open file...\n")
-        ds = drv.Open(outputFile, 1) # 0 means read-only. 1 means writeable.
+        ds = ogr.Open(outputFile, 1) # 0 means read-only. 1 means writeable.
         if ds is None:
             print ("Creation of output file failed.\n")
             sys.exit( 1 )
@@ -310,10 +331,10 @@ def WritePolyline2SHP(graph, outputFile, refWKT = None, tolerance=1e-3):
 # get layer and check if reference is given (write non-georeferenced shp if not defined)     
     lyr = ds.GetLayer(0)
     if lyr is None:
-        if refWKT:
-            print("refWKT")
-            SpatialRef = osr.SpatialReference()
-            SpatialRef.ImportFromWkt(refWKT)
+        if dataset:
+            refWKT = dataset.GetProjection()
+            SpatialRef = osr.SpatialReference()  # makes an empty spatial ref object
+            SpatialRef.ImportFromWkt(refWKT) 
             lyr = ds.CreateLayer( "fitted_polylines", SpatialRef, ogr.wkbLineString)  
         else:
             lyr = ds.CreateLayer( "fitted_polylines", None, ogr.wkbLineString)
@@ -334,11 +355,15 @@ def WritePolyline2SHP(graph, outputFile, refWKT = None, tolerance=1e-3):
         for nn, pp in enumerate(a_x):
             point_list.append([float(a_x[nn]), float(a_y[nn])])
         np.unique(point_list)
-        for point in point_list:
-            line.AddPoint(point[0], point[1])  #need to flip x coodinates in case of non-georeferenced data
-        simpleLine = line.Simplify(tolerance)   #simplyfy the line geometry
-        #simpleLine.SwapXY
+        for p in point_list:           
+            POINT = (p[1], p[0])
+            pt = ConvertCoodinates(POINT, dataset)      
+            line.AddPoint(pt[0], pt[1])  
+        simpleLine = line.Simplify(tolerance)   
         feat.SetGeometry(simpleLine)
         lyr.CreateFeature(feat) 
         feat.Destroy()
     ds = None
+    
+    
+    
