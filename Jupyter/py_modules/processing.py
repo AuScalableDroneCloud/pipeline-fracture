@@ -5,46 +5,21 @@ Created on Mon Mar 14 12:28:28 2022
 @author: kel321
 """
 import cv2
+import sys
 import time
 import numpy as np
 import itertools
-from osgeo import gdal
+from osgeo import gdal, osr, ogr
+from skimage.morphology import skeletonize, binary_closing
 from coshrem.shearletsystem import EdgeSystem, RidgeSystem
 from concurrent.futures import ProcessPoolExecutor
 
-#reading the image and cheking for georeferencing information
-def ReadImage(img_name):
-    dataset = None
-    dataset = gdal.Open(img_name, gdal.GA_ReadOnly)
-    if dataset:
-        if dataset.GetProjection():
-            if dataset.GetGeoTransform():
-                gray = np.array(dataset.GetRasterBand(1).ReadAsArray())
-                return((gray, dataset))
-        else:
-            gray = cv2.imread(img_name, cv2.IMREAD_UNCHANGED)         
-            if gray.any() != None:
-                if len(gray.shape)==3:
-                    gray  = cv2.cvtColor(gray, cv2.COLOR_RGB2GRAY)      
-            return((gray, None))
-
-#write the images 
-def WriteImage(img_list, features, filename):
-    assert len(img_list) == len(features),"number of images not equal to number of ridge/edge ensembles"
-    for i, img in enumerate(img_list):
-        outfile = filename + "_" + str(i) + ".tif"
-        if img[1] != None:
-            dataset = img[1]          
-            driver = gdal.GetDriverByName("GTiff")
-            outdata = driver.Create(outfile, dataset.RasterXSize, dataset.RasterYSize, 1, gdal.GDT_Float32)
-            outdata.SetGeoTransform(dataset.GetGeoTransform())
-            outdata.SetProjection(dataset.GetProjection())
-            outdata.GetRasterBand(1).WriteArray(features[i])
-            outdata.FlushCache() 
-        else:
-            cv2.imwrite(outfile, features[i])
- 
-#split input from text boxes
+'''
+split input from text boxes inIpywidgets
+args
+text = str
+isInt = bool
+'''
 def SplitInput(text, isInt):
     params = []
     text.replace(" ","")
@@ -56,7 +31,111 @@ def SplitInput(text, isInt):
             params.append(float(i))
     return(params)
 
-#check consient size of images adn retun dimesnion of samllest image
+'''
+Check alpha parameter is in approriate range
+args
+alpha = float
+'''
+def CheckShearletParams(alpha):
+    new_alpha = alpha
+    for alp in alpha:
+        if alp < 1:
+           print("invalid entry in alpha: ", alp)
+           new_alpha.remove(alp) 
+        if alp > 2:
+            print("invalid entry in alpha: ", alp)
+            new_alpha.remove(alp)          
+    return(new_alpha)   
+
+'''
+Check offset parameters is in approriate range
+args
+offset = float    
+'''
+def CheckDetectionParams(offset):
+    new_offset = offset
+    for off in offset:
+        if off < 1:
+           print("invalid entry in offset: ", off)
+           new_offset.remove(off) 
+        if off >= 2:
+            print("invalid entry in offset: ", off)
+            new_offset.remove(off)
+    return(new_offset)
+
+
+'''
+reading the image list:
+If image has georefereincing 
+return Numpy array of first raster band and the OGR dataset
+If no georeferencing information are availabe
+return Numpy array of greyscale image and None
+args
+img_list = list(str)
+'''
+def ReadImage(img_list):
+    if (len(img_list) >0):
+        ImgList = []
+        cur_img = (None,None)
+        for i, img in enumerate(img_list):
+            dataset = None
+            dataset = gdal.Open(img, gdal.GA_ReadOnly)
+            if dataset:
+                if dataset.GetProjection():
+                    if dataset.GetGeoTransform():
+                        gray = np.array(dataset.GetRasterBand(1).ReadAsArray())
+                        cur_img = (gray, dataset)
+                else:
+                    gray = cv2.imread(img, cv2.IMREAD_UNCHANGED)         
+                    if gray.any() != None:
+                        if len(gray.shape)==3:
+                            gray  = cv2.cvtColor(gray, cv2.COLOR_RGB2GRAY)  
+                        cur_img = (gray, None)
+            else:
+                print("Could not read image ", img)
+                sys.exit()
+            if (cur_img[0].any() != None):
+                ImgList.append(cur_img)    
+            else:
+                print("Could not read image ", img)
+                sys.exit()
+    else:
+        print("no files selected")
+        sys.exit()
+    return(ImgList)
+
+'''
+write images as tif files:
+If georeferencing information are given write a geotiff
+If no georeferencing infromationare availabe write a simple tiff
+args
+img_list = list(tuple(Numpy array, dataset or None))
+features = list(Numpy array)
+filename = str
+'''
+def WriteImage(img_list, features, filename):
+    assert len(img_list) == len(features),"number of images not equal to number of ridge/edge ensembles"
+    for i, img in enumerate(img_list):
+        outfile = filename + "_" + str(i) + ".tiff"
+        if img[1] != None:
+            dataset = img[1]          
+            driver = gdal.GetDriverByName("GTiff")
+            outdata = driver.Create(outfile, dataset.RasterXSize, dataset.RasterYSize, 1, gdal.GDT_Int16)
+            outdata.SetGeoTransform(dataset.GetGeoTransform())
+            outdata.SetProjection(dataset.GetProjection())
+            outdata.GetRasterBand(1).WriteArray(features[i])
+            outdata.FlushCache() 
+        else:
+            status = cv2.imwrite(outfile, features[i])
+            print("written non-georferenced image", status)
+
+ 
+
+
+'''
+check consient size of images and retun dimension of smallest image
+args = list(str)
+'''
 def ImgSizes(images):
     s = []
     min_s = None
@@ -78,30 +157,12 @@ def ImgSizes(images):
     else:
         return(images[0].shape)
  
-#check for invalid parameters for shearlet system generation
-def CheckShearletParams(alpha):
-    new_alpha = alpha
-    for alp in alpha:
-        if alp < 1:
-           print("invalid entry in alpha: ", alp)
-           new_alpha.remove(alp) 
-        if alp > 2:
-            print("invalid entry in alpha: ", alp)
-            new_alpha.remove(alp)          
-    return(new_alpha)   
- 
-#Check for invalid detection parameters    
-def CheckDetectionParams(offset):
-    new_offset = offset
-    for off in offset:
-        if off < 1:
-           print("invalid entry in offset: ", off)
-           new_offset.remove(off) 
-        if off >= 2:
-            print("invalid entry in offset: ", off)
-            new_offset.remove(off)
-    return(new_offset)
 
+'''
+Generate RidgeSystem from given list of parameters
+args
+params = zip(list())
+'''
 def GetRidgeSys(param):
     pp = list(param)    
    # print(pp[0][1], pp[0][2], pp[0][3], pp[0][4], pp[0][5], pp[0][6])
@@ -114,6 +175,11 @@ def GetRidgeSys(param):
                       ) 
     return(sys)
 
+'''
+Generate EdgeSystem from given list of parameters
+args
+params = zip(list())
+'''
 def GetEdgeSys(param):
     pp = list(param)    
     #print(pp[0][1], pp[0][2], pp[0][3], pp[0][4], pp[0][5], pp[0][6])
@@ -126,7 +192,19 @@ def GetEdgeSys(param):
                       ) 
     return(sys)
 
-#Generate Shearlet systems          
+'''
+Generate the complex shearlet systems based on lists.
+All possible combinations are generated and the systems are then build usind mutiprocessing
+args
+i_size = (int,int) [the size of the image]
+wavelet_eff_supp = list(float)
+gaussian_eff_supp = list(float)
+scales_per_octave = list(float)
+shear_level = list(float)
+ALPHA = list(float)
+OCTAVES = list(float)
+ridges = bool [this is used to switch between building ridge adn edge systems]
+'''    
 def GenerateSystems(i_size, wavelet_eff_supp, gaussian_eff_supp, scales_per_octave, shear_level, ALPHA, OCTAVES, ridges): 
     t = time.time()
     params = []
@@ -137,7 +215,7 @@ def GenerateSystems(i_size, wavelet_eff_supp, gaussian_eff_supp, scales_per_octa
     for  param in all_sys_combs:
         params.append([i_size, param[0], param[1], param[2],param[3],param[4],param[5]])
     iter_param = zip(params)
-    with ProcessPoolExecutor(max_workers=8) as executor:
+    with ProcessPoolExecutor(max_workers=4) as executor:
         if ridges:
             for r in executor.map(GetRidgeSys, iter_param):
                 shearlet_systems.append(r) 
@@ -148,6 +226,9 @@ def GenerateSystems(i_size, wavelet_eff_supp, gaussian_eff_supp, scales_per_octa
     print(" done in ", elapsed, "s")   
     return(shearlet_systems)
 
+'''
+Detect the features in the image
+'''
 def Detect(params):  
     pp = list(params)
     sys = pp[0][0]
@@ -182,9 +263,6 @@ def Detect(params):
         f_ret = features
     return(f_ret)
 
-
-
-
 #Detect features in image
 def DetectFeatures(img_list, shearlet_systems, min_contrast, offset, pivoting_scales, negative, positive, ridges, i_size): 
     print('detecting features with ', len(shearlet_systems), " systems.")
@@ -197,14 +275,13 @@ def DetectFeatures(img_list, shearlet_systems, min_contrast, offset, pivoting_sc
     for i, img in enumerate(img_list):    
          detected = np.zeros(img[0].shape, np.double)   
          
-         func_params = []
-         
+         func_params = []     
          for detect in all_detec_combs:
              for shear_sys in shearlet_systems:   
                  func_params.append((shear_sys, img[0], detect[0], detect[1], pivoting_scales, negative, positive, ridges))
                  
          fp = zip(func_params)
-         with ProcessPoolExecutor(max_workers=8) as executor:
+         with ProcessPoolExecutor(max_workers=2) as executor:
              for r in executor.map(Detect, fp): 
                  detected = np.add(detected, r)
          norm = np.zeros(img[0].shape, np.double)
@@ -213,3 +290,42 @@ def DetectFeatures(img_list, shearlet_systems, min_contrast, offset, pivoting_sc
     elapsed = time.time() - t
     print(" done in ", elapsed, "s")  
     return(feature_img)
+
+
+#Enhancing edge/ridge ensembles------------------------------------------------
+def SigmoidNonlinearity(image):
+    ridges_norm_sig = np.zeros(image.shape, np.double)
+    w,h = image.shape
+    for i in range(w):
+        for j in range(h):
+            if image[i][j] != 0:
+                ridges_norm_sig[i][j] = 1 / (1 + np.exp((-1)*image[i][j]))
+    return(ridges_norm_sig)
+
+def Threshholding(image, thresh, ksize, alpha, beta):   
+    w,h = image.shape
+    for i in range(w):
+        for j in range(h):
+            if image[i][j] < thresh:
+                image[i][j] = 0
+    thresh_sig_img = SigmoidNonlinearity(image) 
+    int_img = (np.multiply(thresh_sig_img, 255)).astype(np.uint8)   
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(ksize,ksize))
+    opening = cv2.morphologyEx(int_img, cv2.MORPH_OPEN, kernel)
+    clean =  int_img - opening
+    adjusted = cv2.convertScaleAbs(clean, alpha=alpha, beta=beta)
+    return(adjusted)
+
+def CleanUp(image, connectivity, min_size):
+    img = np.array(image).astype(np.uint8)
+    
+    #img = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)[1]  # ensure binary    
+    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(img, connectivity=8)
+    sizes = stats[1:, -1]; nb_components = nb_components - 1
+    img2 = np.zeros((output.shape))
+    for i in range(nb_components):
+        if sizes[i] >= min_size:
+            img2[output == i + 1] = 1
+    skeleton = binary_closing(skeletonize(img2))
+    return(skeleton)
+
