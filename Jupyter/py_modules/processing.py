@@ -74,7 +74,7 @@ args
 img_list = list(str)
 '''
 def ReadImage(img_list):
-    if (len(img_list) >0):
+    if (len(img_list) > 0):
         ImgList = []
         cur_img = (None,None)
         for i, img in enumerate(img_list):
