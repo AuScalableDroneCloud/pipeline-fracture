@@ -5,7 +5,7 @@ Created on Mon Mar 14 12:28:28 2022
 @author: kel321
 """
 import cv2
-import sys
+import sys, os
 import time
 import numpy as np
 import itertools
@@ -14,6 +14,7 @@ from skimage.morphology import skeletonize, binary_closing
 from coshrem.shearletsystem import EdgeSystem, RidgeSystem
 from concurrent.futures import ProcessPoolExecutor
 
+#==============================================================================
 '''
 split input from text boxes inIpywidgets
 args
@@ -62,7 +63,7 @@ def CheckDetectionParams(offset):
             print("invalid entry in offset: ", off)
             new_offset.remove(off)
     return(new_offset)
-
+#==============================================================================
 
 '''
 reading the image list:
@@ -72,9 +73,11 @@ If no georeferencing information are availabe
 return Numpy array of greyscale image and None
 args
 img_list = list(str)
+histEq = bool -> apply histogramm equalization
+gaussBl = bool -> apply Gaussian blur 
 '''
-def ReadImage(img_list):
-    if (len(img_list) > 0):
+def ReadImage(img_list, histEq = False, gaussBl = False):
+    if (len(img_list) >0):
         ImgList = []
         cur_img = (None,None)
         for i, img in enumerate(img_list):
@@ -84,12 +87,22 @@ def ReadImage(img_list):
                 if dataset.GetProjection():
                     if dataset.GetGeoTransform():
                         gray = np.array(dataset.GetRasterBand(1).ReadAsArray())
+                        if (histEq):
+                            arr = np.uint8(gray)
+                            gray = cv2.equalizeHist(arr)
+                        if (gaussBl):
+                            gray = cv2.GaussianBlur(gray,(5,5),0)
                         cur_img = (gray, dataset)
                 else:
                     gray = cv2.imread(img, cv2.IMREAD_UNCHANGED)         
                     if gray.any() != None:
                         if len(gray.shape)==3:
                             gray  = cv2.cvtColor(gray, cv2.COLOR_RGB2GRAY)  
+                        if (histEq):
+                            arr = np.uint8(gray)
+                            gray = cv2.equalizeHist(arr)
+                        if (gaussBl):
+                            gray = cv2.GaussianBlur(gray,(5,5),0)
                         cur_img = (gray, None)
             else:
                 print("Could not read image ", img)
@@ -129,9 +142,6 @@ def WriteImage(img_list, features, filename):
             status = cv2.imwrite(outfile, features[i])
             print("written non-georferenced image", status)
 
- 
-
-
 '''
 check consient size of images and retun dimension of smallest image
 args = list(str)
@@ -157,7 +167,7 @@ def ImgSizes(images):
     else:
         return(images[0].shape)
  
-
+#Generating shearlet sysyems and detecting features----------------------------
 '''
 Generate RidgeSystem from given list of parameters
 args
@@ -215,13 +225,12 @@ def GenerateSystems(i_size, wavelet_eff_supp, gaussian_eff_supp, scales_per_octa
     for  param in all_sys_combs:
         params.append([i_size, param[0], param[1], param[2],param[3],param[4],param[5]])
     iter_param = zip(params)
-    with ProcessPoolExecutor(max_workers=4) as executor:
-        if ridges:
-            for r in executor.map(GetRidgeSys, iter_param):
-                shearlet_systems.append(r) 
-        else:
-            for r in executor.map(GetRidgeSys, iter_param):
-                shearlet_systems.append(r) 
+    mw = 10
+    if (len(all_sys_combs) < 10):
+        mw = len(all_sys_combs)
+    with ProcessPoolExecutor(max_workers = mw) as executor:
+        for r in executor.map(GetRidgeSys, iter_param):
+            shearlet_systems.append(r) 
     elapsed = time.time() - t
     print(" done in ", elapsed, "s")   
     return(shearlet_systems)
@@ -273,15 +282,16 @@ def DetectFeatures(img_list, shearlet_systems, min_contrast, offset, pivoting_sc
     all_detec_combs = list(itertools.product(*all_detec_params ))
     print(len(all_detec_combs), " detection combinations.")
     for i, img in enumerate(img_list):    
-         detected = np.zeros(img[0].shape, np.double)   
-         
+         detected = np.zeros(img[0].shape, np.double)       
          func_params = []     
          for detect in all_detec_combs:
              for shear_sys in shearlet_systems:   
-                 func_params.append((shear_sys, img[0], detect[0], detect[1], pivoting_scales, negative, positive, ridges))
-                 
+                 func_params.append((shear_sys, img[0], detect[0], detect[1], pivoting_scales, negative, positive, ridges))              
          fp = zip(func_params)
-         with ProcessPoolExecutor(max_workers=2) as executor:
+         mw = 10
+         if (len(all_detec_combs) < 10):
+             mw = len(all_detec_combs)
+         with ProcessPoolExecutor(max_workers = mw) as executor:
              for r in executor.map(Detect, fp): 
                  detected = np.add(detected, r)
          norm = np.zeros(img[0].shape, np.double)
@@ -293,6 +303,18 @@ def DetectFeatures(img_list, shearlet_systems, min_contrast, offset, pivoting_sc
 
 
 #Enhancing edge/ridge ensembles------------------------------------------------
+'''
+
+'''
+def EnhanceEnsemble(features):
+    enhanced_images = []
+    for i, img in enumerate(features):
+        adjusted = Threshholding(img, 0.01, 3, 1.5, 0)
+        skeleton = CleanUp(adjusted, 3, 5)
+        enhanced_images.append(skeleton)
+    return(enhanced_images)
+        
+
 def SigmoidNonlinearity(image):
     ridges_norm_sig = np.zeros(image.shape, np.double)
     w,h = image.shape
