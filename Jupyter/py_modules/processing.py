@@ -16,7 +16,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 #==============================================================================
 '''
-split input from text boxes inIpywidgets
+split input from text boxes 
 args
 text = str
 isInt = bool
@@ -77,7 +77,7 @@ histEq = bool -> apply histogramm equalization
 gaussBl = bool -> apply Gaussian blur 
 '''
 def ReadImage(img_list, histEq = False, gaussBl = False):
-    if (len(img_list) >0):
+    if (len(img_list) > 0):
         ImgList = []
         cur_img = (None,None)
         for i, img in enumerate(img_list):
@@ -108,6 +108,7 @@ def ReadImage(img_list, histEq = False, gaussBl = False):
                 print("Could not read image ", img)
                 sys.exit()
             if (cur_img[0].any() != None):
+                print('image size: ', cur_img[0].shape)
                 ImgList.append(cur_img)    
             else:
                 print("Could not read image ", img)
@@ -115,6 +116,7 @@ def ReadImage(img_list, histEq = False, gaussBl = False):
     else:
         print("no files selected")
         sys.exit()
+    print('selected', len(ImgList), ' images')
     return(ImgList)
 
 '''
@@ -273,7 +275,7 @@ def Detect(params):
     return(f_ret)
 
 #Detect features in image
-def DetectFeatures(img_list, shearlet_systems, min_contrast, offset, pivoting_scales, negative, positive, ridges, i_size): 
+def DetectFeatures(img_list, i_size, shearlet_systems, min_contrast, offset, pivoting_scales, negative, positive, ridges): 
     print('detecting features with ', len(shearlet_systems), " systems.")
     t = time.time()
     feature_img = []
@@ -301,20 +303,19 @@ def DetectFeatures(img_list, shearlet_systems, min_contrast, offset, pivoting_sc
     print(" done in ", elapsed, "s")  
     return(feature_img)
 
-
 #Enhancing edge/ridge ensembles------------------------------------------------
 '''
 
 '''
-def EnhanceEnsemble(features):
+def EnhanceEnsemble(features,  thresh = 0.01, ksize = 3, alpha = 1.5, connectivity = 3, min_size = 10):
+    beta = 0
     enhanced_images = []
     for i, img in enumerate(features):
-        adjusted = Threshholding(img, 0.01, 3, 1.5, 0)
-        skeleton = CleanUp(adjusted, 3, 5)
+        adjusted = Threshholding(img, thresh, ksize, alpha, beta)
+        skeleton = CleanUp(adjusted, connectivity, min_size)
         enhanced_images.append(skeleton)
     return(enhanced_images)
         
-
 def SigmoidNonlinearity(image):
     ridges_norm_sig = np.zeros(image.shape, np.double)
     w,h = image.shape
@@ -325,6 +326,7 @@ def SigmoidNonlinearity(image):
     return(ridges_norm_sig)
 
 def Threshholding(image, thresh, ksize, alpha, beta):   
+    #img = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)[1]  # ensure binary    
     w,h = image.shape
     for i in range(w):
         for j in range(h):
@@ -340,9 +342,7 @@ def Threshholding(image, thresh, ksize, alpha, beta):
 
 def CleanUp(image, connectivity, min_size):
     img = np.array(image).astype(np.uint8)
-    
-    #img = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)[1]  # ensure binary    
-    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(img, connectivity=8)
+    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(img, connectivity)
     sizes = stats[1:, -1]; nb_components = nb_components - 1
     img2 = np.zeros((output.shape))
     for i in range(nb_components):
