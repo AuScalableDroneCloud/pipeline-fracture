@@ -14,6 +14,10 @@ class Tools:
     FILE = ['img/examples/rgb.tif']
     HISTEQ = False
     GAUSBL = False
+    SHARPE = False
+    EDGE   = False
+    SOBEL  = False
+    INVERT = False
     WAVEEF = ('25,50,150')
     GAUSEF = ('12,25,75')
     SCALES = ('2')
@@ -33,7 +37,7 @@ class Tools:
     MINSI = 10
        
     def SelectFile(self):
-        file = w.Dropdown(options=['rgb', 'rgb_2', 'dem', 'mag'],value='rgb',description='Imagetype:',disabled=False,)
+        file = w.Dropdown(options=['rgb', 'rgb_2', 'rgb_3', 'dem', 'mag'],value='rgb',description='Imagetype:',disabled=False,)
         display(file)  
         def on_change(change):
             if change['type'] == 'change' and change['name'] == 'value':
@@ -41,7 +45,7 @@ class Tools:
         file.observe(on_change)
               
     def SelectEnhancement(self):
-        types = ["Histogram equalization", "Gaussian blur"]
+        types = ["Histogram equalization", "Gaussian blur", "Sharpen", "Edge", "Sobel", "Invert"]
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
         output = w.VBox(children=checkboxes)
         display(output)
@@ -52,11 +56,31 @@ class Tools:
         def on_tick_1(change):
             if change['type'] == 'change' and change['name'] == 'value':
                 self.GAUSBL = change['new']
+        def on_tick_2(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.SHARPE = change['new']
+        def on_tick_3(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.EDGE = change['new']
+        def on_tick_4(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.SOBEL = change['new']
+        def on_tick_5(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.INVERT = change['new']
                 
         box0 = checkboxes[0]
         box1 = checkboxes[1]
+        box2 = checkboxes[2]
+        box3 = checkboxes[3]
+        box4 = checkboxes[4]
+        box5 = checkboxes[5]
         box0.observe(on_tick_0)
         box1.observe(on_tick_1)
+        box2.observe(on_tick_2)
+        box3.observe(on_tick_3)
+        box4.observe(on_tick_4)
+        box5.observe(on_tick_5)
         
     def SystemCombinations(self):
         style = {'description_width': 'initial'}
@@ -86,7 +110,7 @@ class Tools:
                 self.SHEARL = change['new']
         def change_alpha(change):
             if change['type'] == 'change' and change['name'] == 'value':
-                self.SHEARL = change['new']              
+                self.ALPHA = change['new']              
         def change_octaves(change):
             if change['type'] == 'change' and change['name'] == 'value':
                 self.OCTAVE= change['new']              
@@ -135,8 +159,10 @@ class Tools:
         all_widgets[0].observe(change_min_contrast)
         all_widgets[1].observe(change_offset)
         all_widgets[2].observe(change_pivoting_scales)
-        all_widgets[3].observe(change_negative)
-        all_widgets[4].observe(change_positive) 
+        
+        if (RIDGES):
+            all_widgets[3].observe(change_negative)
+            all_widgets[4].observe(change_positive) 
         
     def Enhancement(self):
         style = {'description_width': 'initial'}

@@ -76,7 +76,7 @@ img_list = list(str)
 histEq = bool -> apply histogramm equalization
 gaussBl = bool -> apply Gaussian blur 
 '''
-def ReadImage(img_list, histEq = False, gaussBl = False):
+def ReadImage(img_list, histEq = False, gaussBl = False, sharpen = False, edge = False, sobel = False, invert = False):
     if (len(img_list) > 0):
         ImgList = []
         cur_img = (None,None)
@@ -92,6 +92,19 @@ def ReadImage(img_list, histEq = False, gaussBl = False):
                             gray = cv2.equalizeHist(arr)
                         if (gaussBl):
                             gray = cv2.GaussianBlur(gray,(5,5),0)
+                        if (edge):
+                            print('h')
+                            m_filter = np.array([[0,0,-1,0,0],[0,-1,-2,-1,0],[-1,-2,16,-2,-1],[0,-1,-2,-1,0],[0,0,-1,0,0]])
+                            gray = cv2.filter2D(gray, -1, m_filter)
+                        if (sobel):
+                            x = cv2.Sobel(gray,cv2.CV_64F,1,0,ksize=5)
+                            y = cv2.Sobel(gray,cv2.CV_64F,0,1,ksize=5)
+                            gray = (0.5*x) + (0.5*y)
+                        if (sharpen):
+                            kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+                            gray = cv2.filter2D(gray, -1, kernel)
+                        if (invert):
+                            gray = cv2.bitwise_not(gray)
                         cur_img = (gray, dataset)
                 else:
                     gray = cv2.imread(img, cv2.IMREAD_UNCHANGED)         
@@ -103,6 +116,18 @@ def ReadImage(img_list, histEq = False, gaussBl = False):
                             gray = cv2.equalizeHist(arr)
                         if (gaussBl):
                             gray = cv2.GaussianBlur(gray,(5,5),0)
+                        if (edge):
+                            m_filter = np.array([[0,0,-1,0,0],[0,-1,-2,-1,0],[-1,-2,16,-2,-1],[0,-1,-2,-1,0],[0,0,-1,0,0]])
+                            gray = cv2.filter2D(gray, -1, m_filter)
+                        if (sobel):
+                            x = cv2.Sobel(gray,cv2.CV_64F,1,0,ksize=5)
+                            y = cv2.Sobel(gray,cv2.CV_64F,0,1,ksize=5)
+                            gray = (0.5*x) + (0.5*y)
+                        if (sharpen):
+                            kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+                            gray = cv2.filter2D(gray, -1, kernel)     
+                        if (invert):
+                            gray = cv2.bitwise_not(gray)                       
                         cur_img = (gray, None)
             else:
                 print("Could not read image ", img)
