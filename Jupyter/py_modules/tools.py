@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from IPython.display import display
 
 class Tools: 
-    FILE = ['rgb.tiff']
+    FILE = ['img/examples/rgb.tif']
     HISTEQ = False
     GAUSBL = False
     WAVEEF = ('25,50,150')
@@ -33,11 +33,11 @@ class Tools:
     MINSI = 10
        
     def SelectFile(self):
-        file = w.Dropdown(options=['rgb', 'dem', 'mag'],value='rgb',description='Imagetype:',disabled=False,)
+        file = w.Dropdown(options=['rgb', 'rgb_2', 'dem', 'mag'],value='rgb',description='Imagetype:',disabled=False,)
         display(file)  
         def on_change(change):
             if change['type'] == 'change' and change['name'] == 'value':
-                self.FILE = change['new']+'.tiff'
+                self.FILE = ['img/examples/' + change['new']+'.tif']
         file.observe(on_change)
               
     def SelectEnhancement(self):

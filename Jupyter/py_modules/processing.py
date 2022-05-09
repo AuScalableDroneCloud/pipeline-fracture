@@ -4,12 +4,12 @@ Created on Mon Mar 14 12:28:28 2022
 
 @author: kel321
 """
+import sys
 import cv2
-import sys, os
 import time
 import numpy as np
 import itertools
-from osgeo import gdal, osr, ogr
+from osgeo import gdal
 from skimage.morphology import skeletonize, binary_closing
 from coshrem.shearletsystem import EdgeSystem, RidgeSystem
 from concurrent.futures import ProcessPoolExecutor
