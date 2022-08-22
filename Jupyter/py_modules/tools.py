@@ -5,37 +5,148 @@ Created on Fri May  6 10:01:32 2022
 @author: kel321
 """
 
+import os
 import cv2
+import sys
+#import asdc
+import pathlib
+import numpy as np
+from osgeo import gdal
 import ipywidgets as w
 import matplotlib.pyplot as plt
+from coshrem.util.image import overlay
 from IPython.display import display
+sys.path.append('py_modules')
+import gdal_retile
 
 class Tools: 
-    FILE = ['img/examples/rgb.tif']
+    FILENAME = ''
+    ASSETS = []         #webODM assets
+    FILE = []           #files names of images -> list( str )
+    RAW_IMG = []        #unprocessed images including gdal obj -> list( (np.array, gdal_obj) ), note for non-reoreferenced data gdal_obj is None 
+    DATA = []           #list containing processed data after image preparation -> list( (np.array, gdal_obj) ), note for non-reoreferenced data gdal_obj is None 
+    DATA2 = []          #list containing processed data after image enhancement -> list( (np.array, gdal_obj) ), note for non-reoreferenced data gdal_obj is None 
+    DATA3 = []          #list containing processed data after tiling -> list( (np.array, gdal_obj) ), note for non-reoreferenced data gdal_obj is None
+    FEATURES = []       #list containing detected features -> np.array
+    
     HISTEQ = False
     GAUSBL = False
     SHARPE = False
     EDGE   = False
     SOBEL  = False
+    DETAIL  = False
     INVERT = False
+    POSITV = False 
+    NEGATI = True
+    
+    EDGES  = False
+    RIDGES = True
     WAVEEF = ('25,50,150')
     GAUSEF = ('12,25,75')
     SCALES = ('2')
     SHEARL = ('3')
     ALPHA  = ('1')
     OCTAVE = ('3.5')
-    RIDGES = True
     MINCON = ('5,10,25,50')
     OFFSET = ('1')
     PIVOTS = 'all'
-    NEGATI = True
-    POSITV = False 
     THRESH = 0.01  
     KSIZE = 3   
     CONTRA = 1.5  
     CONNE = 5 
     MINSI = 10
-       
+    PIX = 500
+    
+    E_SYS = []
+    R_SYS = []
+     
+    RESIZE = False
+    PERCE = 100
+    DETAIL = False
+    SIG_S = 1.0
+    SIG_R = 0.5
+    GAMMA = False
+    GAM_C = 1.0
+    WHITE = False
+    W_THR = 1.0
+  
+
+            
+    def Prepare4Processing(self):
+        style = {'description_width': 'initial'}
+        types = ["Resize", "DetailEnahnce", "GammaCorrection", "WhiteBalance"]
+        checkboxes = [w.Checkbox(value=False, description=t) for t in types]
+        
+        resize = w.IntText(value = self.PERCE, placeholder = self.PERCE, description='[%]:',style=style, disabled=False)
+        sig_s = w.BoundedFloatText(value = self.SIG_R, placeholder = self.SIG_R, min = 0, max = 200, step=0.1, description='sig_r:',style=style, disabled=False)
+        sig_r = w.BoundedFloatText(value = self.SIG_S, placeholder = self.SIG_S, min = 0, max = 1,   step=0.01,description='sig_s:',style=style, disabled=False)
+        detail = w.HBox([sig_r, sig_s ])
+        gamma = w.FloatText(value  = self.GAM_C, placeholder = self.GAM_C,  description='gamma:',style=style, disabled=False)
+        white = w.FloatText(value  = self.W_THR, placeholder = self.W_THR,  description='thresh:',style=style, disabled=False)
+                
+        left_box  = w.VBox( [ checkboxes[0], checkboxes[1], checkboxes[2], checkboxes[3] ] )
+        right_box = w.VBox( [resize, detail,  gamma, white] )
+        
+        output = w.HBox([left_box, right_box])
+        display(output)
+
+        def on_tick_0(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.RESIZE = change['new']
+                
+        def on_tick_1(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+               self.DETAIL = change['new']
+                
+        def on_tick_2(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.GAMMA = change['new']
+                          
+        def on_tick_3(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.WHITE = change['new']   
+        def change_size(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.PERCE = change['new']  
+        def change_sig_S(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.SIG_S = change['new'] 
+        def change_sig_R(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.SIG_R = change['new']          
+        def change_GAM_C(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.GAM_C = change['new']       
+        def change_W_THR(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.W_THR = change['new'] 
+                
+        checkboxes[0].observe(on_tick_0)
+        checkboxes[1].observe(on_tick_1)
+        checkboxes[2].observe(on_tick_2)
+        checkboxes[3].observe(on_tick_3) 
+        resize.observe(change_size)
+        sig_r.observe(change_sig_S)
+        sig_s.observe(change_sig_S)
+        gamma.observe(change_GAM_C)
+        white.observe(change_W_THR)      
+
+    def PlotPreparedImg(self, hist, proc_hist):
+        assert len(Tools.RAW_IMG) == len(Tools.DATA), "inconsistent image lists"
+        for i, img in enumerate(Tools.DATA):
+            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(nrows=2, ncols=2, figsize=(25,25))
+            raw = Tools.RAW_IMG[i].ReadAsArray()
+            if (raw.ndim) == 3:
+                raw = np.swapaxes(raw,0,2)
+                raw = np.swapaxes(raw,0,1)  
+            img = img.ReadAsArray()
+            ax1.imshow(raw, cmap=plt.get_cmap('gray'))
+            for h in hist:
+                ax2.plot( h )
+            ax3.imshow(img, cmap=plt.get_cmap('gray') )
+            for h in proc_hist:
+                ax4.plot( h )
+
     def SelectFile(self):
         file = w.Dropdown(options=['rgb', 'rgb_2', 'rgb_3', 'dem', 'mag'],value='rgb',description='Imagetype:',disabled=False,)
         display(file)  
@@ -43,7 +154,158 @@ class Tools:
             if change['type'] == 'change' and change['name'] == 'value':
                 self.FILE = ['img/examples/' + change['new']+'.tif']
         file.observe(on_change)
-              
+                     
+    def CheckTemp():
+        cur_dir = os.getcwd()
+        path = os.path.join(cur_dir, 'temp')
+        if os.path.isdir(path): 
+            if (len(os.listdir(path)) > 0):
+                for f in os.listdir(path):
+                    try:
+                        os.remove(os.path.join(path, f))
+                    except:
+                        print('whoops')        
+        else:
+            os.mkdir(path)
+            print("Directory '% s' created" % path)
+                  
+    def GetFromTemp(self):
+        self.DATA3 = []
+        files  = [] 
+        cur_dir = os.getcwd()
+        path = os.path.join(cur_dir, 'temp')
+        if os.path.isdir(path): 
+            if (len(os.listdir(path)) > 0):
+                for f in os.listdir(path):
+                    files.append(os.path.join(path, f))
+            else:
+                print('temp folder is empty')
+                
+        if (len(files) > 0):
+            for i, img in enumerate(files):
+                 res = isinstance(img, str)
+                 if (res):
+                     dataset = gdal.Open(img, gdal.GA_ReadOnly)
+                 else:
+                     print('cannot resolve filename', img)
+                 if dataset:
+                     driver = gdal.GetDriverByName("MEM")
+                     data = driver.CreateCopy('', dataset, strict=0) 
+                     self.DATA3.append( data )
+                     dataset = None
+                     
+    def PixelSize(self):
+         pixel = w.Text(value='500', placeholder='x y pixel', description='Pixel Size:', disabled=False)
+         go = w.Button(description='GO!')
+         out2 = w.Output()
+
+         def on_change(change):
+             if change['type'] == 'change' and change['name'] == 'value':
+                 self.PIX = change['new']   
+                 
+         def go_tile(obj):
+             with out2:
+                 Tools.CheckTemp()
+                 cur_dir = os.getcwd()
+                 file = os.path.join(cur_dir, 'temp', 'temp_file.tif') 
+                 for dataset in Tools.DATA2:  
+                    i = dataset.ReadAsArray()
+                    driver = gdal.GetDriverByName("GTiff")
+                    outdata = driver.Create(file, dataset.RasterXSize, dataset.RasterYSize, 1, gdal.GDT_Int16)
+                    outdata.SetGeoTransform(dataset.GetGeoTransform())
+                    outdata.SetProjection(dataset.GetProjection())
+                    outdata.GetRasterBand(1).WriteArray( i )
+                    outdata.FlushCache() 
+                    outdata = None
+                    dataset = None
+                    cmd=(' ','-ps',str(self.PIX),str(self.PIX),'-targetDir','temp', file)
+                    gdal_retile.main(cmd)
+                    os.remove(file)
+                    self.GetFromTemp(self)
+                 print('done')
+            
+         pixel.observe(on_change)
+         go.on_click(go_tile)
+         
+         tile = w.HBox([pixel, go])
+         show2 = w.VBox([tile, out2]) 
+         display(show2)     
+      
+    def TileImage(self):
+        btn = w.Button(description='Tile image')
+        bt2 = w.Button(description='Do not tile image')
+        out = w.Output()
+       
+        def Tile(obj):
+            with out:
+                print('Please select the desired tile size in pixels')
+                self.PixelSize(self)
+
+        def NoTile(obj):
+            with out:
+                print('processing with initial image size')
+                self.DATA3 = []
+                self.DATA3 = self.DATA2
+
+        btn.on_click(Tile)
+        bt2.on_click(NoTile)
+        
+        buttons = w.HBox([btn, bt2])
+        show = w.VBox([buttons, out])
+        display(show)
+       
+  
+    def MosaicTiles(self, detected):
+        images = []
+        featur = []
+        self.FEATURES = []
+        self.DATA = []
+        assert len(self.DATA3) == len(detected), "inconsistent image lists"
+        if (len(self.DATA3) > 1):
+            for i, img in enumerate(self.DATA3): 
+                driver = gdal.GetDriverByName("MEM")
+                outdata = driver.Create('', img.RasterXSize, img.RasterYSize, 1, gdal.GDT_Float64)
+                outdata.SetGeoTransform(img.GetGeoTransform())
+                outdata.SetProjection(img.GetProjection())
+                features = driver.CreateCopy('', outdata, strict=0) 
+                outdata.GetRasterBand(1).WriteArray(img.GetRasterBand(1).ReadAsArray() )   
+                features.GetRasterBand(1).WriteArray(detected[i])
+                images.append( outdata  )
+                featur.append( features )   
+            IMG = gdal.Warp('', images, format="MEM", options=["COMPRESS=LZW", "TILED=YES"]) 
+            FEA = gdal.Warp('', featur, format="MEM", options=["COMPRESS=LZW", "TILED=YES"]) 
+   
+        else:
+            assert len(self.DATA3) == len(detected), "inconsistent image lists"
+            print('here')  
+            img = self.DATA3[0]
+            driver = gdal.GetDriverByName("MEM")
+            features = driver.Create('', img.RasterXSize, img.RasterYSize, 1, gdal.GDT_Float64)
+            features.SetGeoTransform(img.GetGeoTransform())
+            features.SetProjection(img.GetProjection())
+            features.GetRasterBand(1).WriteArray(detected[0])
+            IMG = img
+            FEA = features
+        self.DATA.append( IMG )
+        self.FEATURES.append( FEA )  
+
+        if (self.RESIZE):
+            print("converting back to original size")
+            assert len(self.RAW_IMG) == len(self.FEATURES), "inconsistent image lists"
+            for i, img in enumerate(self.RAW_IMG): 
+                dataset = self.FEATURES[i]
+                drv = gdal.GetDriverByName( 'MEM' )
+                dst_ds = drv.Create( '', img.RasterXSize, img.RasterYSize, 1, gdal.GDT_Float64  )
+                dst_ds.SetProjection(img.GetProjectionRef())  
+                dst_ds.SetGeoTransform( img.GetGeoTransform() )
+                dst_ds.GetRasterBand(1).WriteArray(dataset.GetRasterBand(1).ReadAsArray()) 
+                gdal.ReprojectImage( dataset, dst_ds, None,  None, gdal.GRA_NearestNeighbour ) 
+                self.FEATURES[i] = (dst_ds)
+                img = None
+                dst_ds = None  
+                dataset = None
+         
+                
     def SelectEnhancement(self):
         types = ["Histogram equalization", "Gaussian blur", "Sharpen", "Edge", "Sobel", "Invert"]
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
@@ -75,12 +337,14 @@ class Tools:
         box3 = checkboxes[3]
         box4 = checkboxes[4]
         box5 = checkboxes[5]
+
         box0.observe(on_tick_0)
         box1.observe(on_tick_1)
         box2.observe(on_tick_2)
         box3.observe(on_tick_3)
         box4.observe(on_tick_4)
         box5.observe(on_tick_5)
+
         
     def SystemCombinations(self):
         style = {'description_width': 'initial'}
@@ -91,8 +355,9 @@ class Tools:
         alpha = w.Text(value='1',placeholder='1',description='alpha:',style=style, disabled=False)
         octaves = w.Text(value='3.5',placeholder='3.5',description='octaves:',style=style, disabled=False)
         ridges = w.Checkbox(True, description='Ridges')
+        edges  = w.Checkbox(False, description='Edges')
         
-        all_widgets =[waveletEffSupp, gaussianEffSupp, scalesPerOctave, shearLevel, alpha, octaves, ridges]
+        all_widgets =[waveletEffSupp, gaussianEffSupp, scalesPerOctave, shearLevel, alpha, octaves, ridges, edges]
         output = w.VBox(children=all_widgets)
         display(output)
         
@@ -117,6 +382,9 @@ class Tools:
         def change_ridges(change):
             if change['type'] == 'change' and change['name'] == 'value':
                 self.RIDGES= change['new']
+        def change_edges(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.EDGES= change['new']
                   
         all_widgets[0].observe(change_waveletEffSupp)
         all_widgets[1].observe(change_gaussianEffSupp)
@@ -125,13 +393,14 @@ class Tools:
         all_widgets[4].observe(change_alpha) 
         all_widgets[5].observe(change_octaves)
         all_widgets[6].observe(change_ridges)
+        all_widgets[7].observe(change_edges)
         
-    def DetectionCombinations(self, RIDGES):
+    def DetectionCombinations(self):
         style = {'description_width': 'initial'}
         min_contrast = w.Text(value='5,10,25,50',placeholder='5,10,25,50',description='minContrast:',style=style, disabled=False)
         offset = w.Text(value='1',placeholder='1,1.5',description='offset:',style=style, disabled=False)
         pivoting_scales = w.Dropdown(description='scalesUsedForPivotSearch',style=style, options=['all', 'highest', 'lowest'], value='all')
-        if (RIDGES):
+        if (self.RIDGES):
             negative = w.Checkbox(True, description='negative')
             positive = w.Checkbox(False, description='positive')
             all_widgets = [min_contrast, offset, pivoting_scales, negative, positive]
@@ -160,18 +429,16 @@ class Tools:
         all_widgets[1].observe(change_offset)
         all_widgets[2].observe(change_pivoting_scales)
         
-        if (RIDGES):
+        if (self.RIDGES):
             all_widgets[3].observe(change_negative)
             all_widgets[4].observe(change_positive) 
         
     def Enhancement(self):
         style = {'description_width': 'initial'}
-        thresh = w.FloatSlider(description='min pixel value',style=style, value=0.1 ,min=0, max=1, step=0.01,continuous_update=False)
-        ksize  = w.IntSlider(description='kernel size',style=style, value=3 ,min=1, max=100, step=2,continuous_update=False)
-        alpha  = w.FloatSlider(description='contrast',style=style, value=1.5, min=1, max=100, step=0.1,continuous_update=False)
-        connec = w.IntSlider(description='connectivity',style=style, value=8 ,min=1, max=8, step=1,continuous_update=False)
-        minsiz = w.IntSlider(description='min cluster size',style=style, value=10 ,min=1, max=1000, step=1,continuous_update=False)
-        all_widgets = [thresh, ksize, alpha, connec, minsiz]
+        thresh = w.FloatSlider(description='min pixel value',style=style, value=0.0 ,min=0, max=1, step=0.001,continuous_update=False)
+        ksize  = w.IntSlider(description='kernel size',style=style, value=5 ,min=1, max=100, step=1,continuous_update=False)
+        minsiz = w.IntSlider(description='min cluster size',style=style, value=1 ,min=1, max=10000, step=1,continuous_update=False)
+        all_widgets = [thresh, ksize, minsiz]
         output = w.VBox(children=all_widgets)
         display(output)
         
@@ -180,44 +447,122 @@ class Tools:
                 self.THRESH = change['new']       
         def change_ksize(change):
             if change['type'] == 'change' and change['name'] == 'value':
-                self.KSIZE = change['new']             
-        def change_alpha(change):
-            if change['type'] == 'change' and change['name'] == 'value':
-                self.CONTRA = change['new']            
-        def change_connect(change):
-            if change['type'] == 'change' and change['name'] == 'value':
-                self.CONNE = change['new']          
+                self.KSIZE = change['new']                     
+        
         def change_min_size(change):
             if change['type'] == 'change' and change['name'] == 'value':
                 self.MINSI = change['new']
                 
         all_widgets[0].observe(change_thresh)
         all_widgets[1].observe(change_ksize)
-        all_widgets[2].observe(change_alpha)
-        all_widgets[3].observe(change_connect)
-        all_widgets[4].observe(change_min_size) 
+        all_widgets[2].observe(change_min_size)
         
     def ShowImage(img_list):  
         for i, img in enumerate(img_list):
+            img = img.ReadAsArray()
             f, ax1 = plt.subplots(nrows=1,figsize=(25,25))      
-            ax1.imshow(img[0], cmap="gray"); 
-            ax1.get_xaxis().set_visible(False)
-            ax1.get_yaxis().set_visible(False)
-    
-    def ShowOverlay(img_list, features):  
-        for i, img in enumerate(img_list):
-            f, ax1 = plt.subplots(nrows=1,figsize=(25,25))
-            overlay = cv2.addWeighted(img[0],0.005, features[i] ,0.99,0, dtype=cv2.CV_64F)       
-            ax1.imshow(overlay, cmap="gray"); 
-            ax1.get_xaxis().set_visible(False)
-            ax1.axes.get_yaxis().set_visible(False)    
-    
-    def ShowCompare(img_list1, img_list2):
-        for i, img in enumerate(img_list1):
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(25,25))
             ax1.imshow(img, cmap="gray")
             ax1.get_xaxis().set_visible(False)
             ax1.get_yaxis().set_visible(False)
-            ax2.imshow(img_list2[i])
-            ax2.get_xaxis().set_visible(False)
-            ax2.get_yaxis().set_visible(False)
+    
+    
+    def ShowOverlay(self):  
+        assert len(self.DATA) == len(self.FEATURES), "hmm"  
+        for i, img in enumerate(self.RAW_IMG):
+            feat = self.FEATURES[i].GetRasterBand(1).ReadAsArray()
+            image = img.GetRasterBand(1).ReadAsArray()
+            s = image.shape   
+            print(s)
+           #if (s[2].ndim > 1):
+           #     image = image[:,:,1]
+              
+            '''
+            h, w = feat[0].shape
+            shapes = np.zeros_like(image, np.uint8)
+            shapes[0:h, 0:w] = feat[0]
+            alpha = 0
+            mask = shapes.astype(bool)
+            image[mask] = cv2.addWeighted(image, alpha, feat[0], 1 - alpha, 0, dtype=cv2.CV_32F)[mask]
+            '''
+            values = feat[feat!=0]
+            m = np.min(values)
+            M = np.max(values)
+            print(m)
+            print(M)
+
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(25,25))
+            ax1.imshow(overlay(image, feat) )
+            ax1.get_xaxis().set_visible(False)
+            ax1.get_yaxis().set_visible(False)    
+            ax2.plot(feat[0], color='k')
+            ax2.set_ylim((m, M))
+
+
+    
+    def ShowCompare(img1, img2):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(25,25))
+        ax1.imshow(img1[0], cmap="gray")
+        #ax1.get_xaxis().set_visible(False)
+        #ax1.get_yaxis().set_visible(False)
+        ax2.imshow(img2.GetRasterBand(1).ReadAsArray(), cmap="gray")
+        #ax2.get_xaxis().set_visible(False)
+       # ax2.get_yaxis().set_visible(False)
+    
+    def GetAssets(self, project, task):
+        assests = ['orthophoto.tif', 'dsm.tif']
+        pathlib.Path(task).mkdir(parents=True, exist_ok=True)
+        os.chdir(task)
+        for i in assests:
+            asdc.download_asset(project, task, i)
+            if "orthophoto" in i or "dsm" in i:
+                data = gdal.Open(i, gdal.GA_ReadOnly)
+                if data and data.GetProjection() and data.GetGeoTransform():     
+                    Tools.ASSETS.append( (str(i), data) )
+                else:
+                    Tools.ASSETS.append( (str(i), cv2.imread(i, cv2.IMREAD_UNCHANGED)) )
+                print('added', i, 'to downloaded assets.')  
+        Tools.DATA.append(Tools.ASSETS[0][1])
+
+    def SelectAsset(self):     
+        names = [] 
+        for f in Tools.ASSETS:
+            names.append(f[0])     
+        file = w.Dropdown(options=names,description='Assets:', value='orthophoto.tif', disabled=False,)
+        display(file)  
+        def on_change(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                Tools.DATA = []
+                for d in Tools.ASSETS:
+                    if d[0] == change['new']:
+                        Tools.DATA.append(d[1])
+        file.observe(on_change)
+        
+    def SelectFilename(self):
+        filename = w.Text(value='test', placeholder='filename', description='Filename:', disabled=False)
+        display(filename)
+        def on_change(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                Tools.FILENAME = change['new']   
+        filename.observe(on_change)
+    '''
+    write images as tif files:
+    If georeferencing information are given write a geotiff
+    If no georeferencing infromationare availabe write a simple tiff
+    args
+    img_list = list(tuple(Numpy array, dataset or None))
+    features = list(Numpy array)
+    filename = str
+    '''
+    def WriteImage(img_list, filename): 
+        print("Images will be written into ", os.getcwd())
+        for i, img in enumerate(img_list):
+            cur_dir = os.getcwd()
+            path = os.path.join(cur_dir, filename + "_" + str(i) + ".tiff")
+            driver = gdal.GetDriverByName("GTiff")
+            outdata = driver.Create(path, img.RasterXSize, img.RasterYSize, 1, img.GetRasterBand(1).DataType)
+            outdata.SetGeoTransform(img.GetGeoTransform())
+            outdata.SetProjection(img.GetProjection())
+            outdata.GetRasterBand(1).WriteArray(img.GetRasterBand(1).ReadAsArray() )
+            outdata.FlushCache() 
+            print("written image ", filename)
+            outdata = None
