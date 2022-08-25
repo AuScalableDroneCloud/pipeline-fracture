@@ -17,9 +17,12 @@ import matplotlib.pyplot as plt
 from coshrem.util.image import overlay
 from IPython.display import display
 sys.path.append('py_modules')
+
 import gdal_retile
 
 class Tools: 
+    
+    #TODO: all static at the moment!!!
     FILENAME = ''
     ASSETS = []         #webODM assets
     FILE = []           #files names of images -> list( str )
@@ -28,7 +31,20 @@ class Tools:
     DATA2 = []          #list containing processed data after image enhancement -> list( (np.array, gdal_obj) ), note for non-reoreferenced data gdal_obj is None 
     DATA3 = []          #list containing processed data after tiling -> list( (np.array, gdal_obj) ), note for non-reoreferenced data gdal_obj is None
     FEATURES = []       #list containing detected features -> np.array
+    E_FEATURES = []
     
+    #preparation
+    RESIZE = False
+    PERCE = 100
+    DETAIL = False
+    SIG_S = 8
+    SIG_R = 0.15
+    GAMMA = False
+    GAM_C = 1.0
+    WHITE = False
+    W_THR = 1.0
+    
+    #preprocessing
     HISTEQ = False
     GAUSBL = False
     SHARPE = False
@@ -39,6 +55,7 @@ class Tools:
     POSITV = False 
     NEGATI = True
     
+    #system parameters
     EDGES  = False
     RIDGES = True
     WAVEEF = ('25,50,150')
@@ -47,39 +64,28 @@ class Tools:
     SHEARL = ('3')
     ALPHA  = ('1')
     OCTAVE = ('3.5')
+    E_SYS = []
+    R_SYS = []
+    
+    #detection
     MINCON = ('5,10,25,50')
     OFFSET = ('1')
     PIVOTS = 'all'
-    THRESH = 0.01  
+    
+    #enhancement
+    THRESH = 0.0 
     KSIZE = 3   
-    CONTRA = 1.5  
-    CONNE = 5 
-    MINSI = 10
+    MINSI = 1
     PIX = 500
     
-    E_SYS = []
-    R_SYS = []
-     
-    RESIZE = False
-    PERCE = 100
-    DETAIL = False
-    SIG_S = 1.0
-    SIG_R = 0.5
-    GAMMA = False
-    GAM_C = 1.0
-    WHITE = False
-    W_THR = 1.0
-  
-
-            
     def Prepare4Processing(self):
         style = {'description_width': 'initial'}
         types = ["Resize", "DetailEnahnce", "GammaCorrection", "WhiteBalance"]
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
         
         resize = w.IntText(value = self.PERCE, placeholder = self.PERCE, description='[%]:',style=style, disabled=False)
-        sig_s = w.BoundedFloatText(value = self.SIG_R, placeholder = self.SIG_R, min = 0, max = 200, step=0.1, description='sig_r:',style=style, disabled=False)
-        sig_r = w.BoundedFloatText(value = self.SIG_S, placeholder = self.SIG_S, min = 0, max = 1,   step=0.01,description='sig_s:',style=style, disabled=False)
+        sig_s = w.BoundedFloatText(value = self.SIG_R, placeholder = self.SIG_S, min = 0, max = 200, step=0.1, description='sig_s:',style=style, disabled=False)
+        sig_r = w.BoundedFloatText(value = self.SIG_S, placeholder = self.SIG_R, min = 0, max = 1,   step=0.01,description='sig_r:',style=style, disabled=False)
         detail = w.HBox([sig_r, sig_s ])
         gamma = w.FloatText(value  = self.GAM_C, placeholder = self.GAM_C,  description='gamma:',style=style, disabled=False)
         white = w.FloatText(value  = self.W_THR, placeholder = self.W_THR,  description='thresh:',style=style, disabled=False)
@@ -164,7 +170,7 @@ class Tools:
                     try:
                         os.remove(os.path.join(path, f))
                     except:
-                        print('whoops')        
+                        print('cannot remove file ', f)        
         else:
             os.mkdir(path)
             print("Directory '% s' created" % path)
@@ -179,7 +185,7 @@ class Tools:
                 for f in os.listdir(path):
                     files.append(os.path.join(path, f))
             else:
-                print('temp folder is empty')
+                print('temp folder is empty. Check pixel size for tiling!')
                 
         if (len(files) > 0):
             for i, img in enumerate(files):
@@ -193,7 +199,29 @@ class Tools:
                      data = driver.CreateCopy('', dataset, strict=0) 
                      self.DATA3.append( data )
                      dataset = None
-                     
+                           
+    def Tile(self):  
+        if (int(self.PIX) != 0):
+            self.CheckTemp()
+            cur_dir = os.getcwd()
+            file = os.path.join(cur_dir, 'temp', 'temp_file.tif') 
+            for dataset in self.DATA2:  
+               i = dataset.ReadAsArray()
+               driver = gdal.GetDriverByName("GTiff")
+               outdata = driver.Create(file, dataset.RasterXSize, dataset.RasterYSize, 1, dataset.GetRasterBand(1).DataType )
+               outdata.SetGeoTransform(dataset.GetGeoTransform())
+               outdata.SetProjection(dataset.GetProjection())
+               outdata.GetRasterBand(1).WriteArray( i )
+               outdata.FlushCache() 
+               outdata = None
+               dataset = None
+               cmd=(' ','-ps',str(self.PIX),str(self.PIX),'-targetDir','temp', file)
+               gdal_retile.main(cmd)
+               os.remove(file)
+               self.GetFromTemp(self)
+        else:
+            print('define a pixel size')
+               
     def PixelSize(self):
          pixel = w.Text(value='500', placeholder='x y pixel', description='Pixel Size:', disabled=False)
          go = w.Button(description='GO!')
@@ -205,23 +233,7 @@ class Tools:
                  
          def go_tile(obj):
              with out2:
-                 Tools.CheckTemp()
-                 cur_dir = os.getcwd()
-                 file = os.path.join(cur_dir, 'temp', 'temp_file.tif') 
-                 for dataset in Tools.DATA2:  
-                    i = dataset.ReadAsArray()
-                    driver = gdal.GetDriverByName("GTiff")
-                    outdata = driver.Create(file, dataset.RasterXSize, dataset.RasterYSize, 1, gdal.GDT_Int16)
-                    outdata.SetGeoTransform(dataset.GetGeoTransform())
-                    outdata.SetProjection(dataset.GetProjection())
-                    outdata.GetRasterBand(1).WriteArray( i )
-                    outdata.FlushCache() 
-                    outdata = None
-                    dataset = None
-                    cmd=(' ','-ps',str(self.PIX),str(self.PIX),'-targetDir','temp', file)
-                    gdal_retile.main(cmd)
-                    os.remove(file)
-                    self.GetFromTemp(self)
+                 self.Tile(self)
                  print('done')
             
          pixel.observe(on_change)
@@ -254,40 +266,43 @@ class Tools:
         show = w.VBox([buttons, out])
         display(show)
        
-  
-    def MosaicTiles(self, detected):
+    def MosaicTiles(self):
         images = []
         featur = []
-        self.FEATURES = []
-        self.DATA = []
-        assert len(self.DATA3) == len(detected), "inconsistent image lists"
+        IMG = []
+        FEA = []
+        assert len(self.DATA3) == len(self.FEATURES), "inconsistent image lists"
         if (len(self.DATA3) > 1):
+            print("retiling, ", len(self.FEATURES), " images.")
             for i, img in enumerate(self.DATA3): 
+                detected = Tools.FEATURES[i].ReadAsArray()
                 driver = gdal.GetDriverByName("MEM")
-                outdata = driver.Create('', img.RasterXSize, img.RasterYSize, 1, gdal.GDT_Float64)
+                features = driver.Create('', img.RasterXSize, img.RasterYSize, 1, gdal.GDT_Float64)
+                outdata  = driver.Create('', img.RasterXSize, img.RasterYSize, 1, img.GetRasterBand(1).DataType)
                 outdata.SetGeoTransform(img.GetGeoTransform())
                 outdata.SetProjection(img.GetProjection())
-                features = driver.CreateCopy('', outdata, strict=0) 
+                features.SetGeoTransform(img.GetGeoTransform())
+                features.SetProjection(img.GetProjection())
                 outdata.GetRasterBand(1).WriteArray(img.GetRasterBand(1).ReadAsArray() )   
-                features.GetRasterBand(1).WriteArray(detected[i])
+                features.GetRasterBand(1).WriteArray(detected)
                 images.append( outdata  )
                 featur.append( features )   
-            IMG = gdal.Warp('', images, format="MEM", options=["COMPRESS=LZW", "TILED=YES"]) 
-            FEA = gdal.Warp('', featur, format="MEM", options=["COMPRESS=LZW", "TILED=YES"]) 
-   
+            I = gdal.Warp('', images, format="MEM", options=["COMPRESS=LZW", "TILED=YES"]) 
+            F = gdal.Warp('', featur, format="MEM", options=["COMPRESS=LZW", "TILED=YES"]) 
+            IMG.append(I)
+            FEA.append(F)
         else:
-            assert len(self.DATA3) == len(detected), "inconsistent image lists"
-            print('here')  
+            detected = self.FEATURES[0].ReadAsArray()
             img = self.DATA3[0]
             driver = gdal.GetDriverByName("MEM")
             features = driver.Create('', img.RasterXSize, img.RasterYSize, 1, gdal.GDT_Float64)
             features.SetGeoTransform(img.GetGeoTransform())
             features.SetProjection(img.GetProjection())
-            features.GetRasterBand(1).WriteArray(detected[0])
-            IMG = img
-            FEA = features
-        self.DATA.append( IMG )
-        self.FEATURES.append( FEA )  
+            features.GetRasterBand(1).WriteArray(detected)
+            IMG.append( img )
+            FEA.append( features)
+        self.DATA = IMG 
+        self.FEATURES = FEA   
 
         if (self.RESIZE):
             print("converting back to original size")
@@ -304,8 +319,7 @@ class Tools:
                 img = None
                 dst_ds = None  
                 dataset = None
-         
-                
+   
     def SelectEnhancement(self):
         types = ["Histogram equalization", "Gaussian blur", "Sharpen", "Edge", "Sobel", "Invert"]
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
@@ -435,9 +449,9 @@ class Tools:
         
     def Enhancement(self):
         style = {'description_width': 'initial'}
-        thresh = w.FloatSlider(description='min pixel value',style=style, value=0.0 ,min=0, max=1, step=0.001,continuous_update=False)
-        ksize  = w.IntSlider(description='kernel size',style=style, value=5 ,min=1, max=100, step=1,continuous_update=False)
-        minsiz = w.IntSlider(description='min cluster size',style=style, value=1 ,min=1, max=10000, step=1,continuous_update=False)
+        thresh = w.BoundedFloatText(value = self.THRESH, placeholder = self.THRESH, min = 0, max = 1, step=0.01, description='min pixel value:',style=style, disabled=False)
+        ksize  = w.BoundedFloatText(value = self.KSIZE, placeholder = self.KSIZE, min = 1, max = 1000, step=1, description='kernel size:',style=style, disabled=False)
+        minsiz = w.BoundedFloatText(value = self.MINSI, placeholder = self.MINSI, min = 1, max = 10000, step=1, description='min cluster size:',style=style, disabled=False)
         all_widgets = [thresh, ksize, minsiz]
         output = w.VBox(children=all_widgets)
         display(output)
@@ -464,32 +478,15 @@ class Tools:
             ax1.imshow(img, cmap="gray")
             ax1.get_xaxis().set_visible(False)
             ax1.get_yaxis().set_visible(False)
-    
-    
+      
     def ShowOverlay(self):  
         assert len(self.DATA) == len(self.FEATURES), "hmm"  
         for i, img in enumerate(self.RAW_IMG):
             feat = self.FEATURES[i].GetRasterBand(1).ReadAsArray()
             image = img.GetRasterBand(1).ReadAsArray()
-            s = image.shape   
-            print(s)
-           #if (s[2].ndim > 1):
-           #     image = image[:,:,1]
-              
-            '''
-            h, w = feat[0].shape
-            shapes = np.zeros_like(image, np.uint8)
-            shapes[0:h, 0:w] = feat[0]
-            alpha = 0
-            mask = shapes.astype(bool)
-            image[mask] = cv2.addWeighted(image, alpha, feat[0], 1 - alpha, 0, dtype=cv2.CV_32F)[mask]
-            '''
             values = feat[feat!=0]
             m = np.min(values)
             M = np.max(values)
-            print(m)
-            print(M)
-
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(25,25))
             ax1.imshow(overlay(image, feat) )
             ax1.get_xaxis().set_visible(False)
@@ -497,16 +494,16 @@ class Tools:
             ax2.plot(feat[0], color='k')
             ax2.set_ylim((m, M))
 
-
-    
-    def ShowCompare(img1, img2):
+    def ShowCompare(self):
+        img1 = self.FEATURES[0].GetRasterBand(1).ReadAsArray() 
+        img2 = self.E_FEATURES[0].GetRasterBand(1).ReadAsArray() 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(25,25))
-        ax1.imshow(img1[0], cmap="gray")
-        #ax1.get_xaxis().set_visible(False)
-        #ax1.get_yaxis().set_visible(False)
-        ax2.imshow(img2.GetRasterBand(1).ReadAsArray(), cmap="gray")
-        #ax2.get_xaxis().set_visible(False)
-       # ax2.get_yaxis().set_visible(False)
+        ax1.imshow(img1, cmap="gray")
+        ax1.get_xaxis().set_visible(False)
+        ax1.get_yaxis().set_visible(False)
+        ax2.imshow(img2, cmap="gray")
+        ax2.get_xaxis().set_visible(False)
+        ax2.get_yaxis().set_visible(False)
     
     def GetAssets(self, project, task):
         assests = ['orthophoto.tif', 'dsm.tif']

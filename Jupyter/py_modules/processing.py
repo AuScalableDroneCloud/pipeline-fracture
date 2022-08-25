@@ -10,6 +10,7 @@ import cv2
 import time
 import numpy as np
 import itertools
+
 from osgeo import gdal,osr, ogr, gdal_array
 from sknw import build_sknw
 from skimage.morphology import skeletonize, binary_closing
@@ -136,79 +137,79 @@ def PrepareImages(Tools):
                 dataset = None
                 
         #start the processing   
-        print('preparing image')                
-        bands = dst_ds.RasterCount                 
-        if (Tools.RESIZE):
-            #TODO: double check this!!!!!
-            width = int(dst_ds.RasterXSize * Tools.PERCE / 100)
-            height = int(dst_ds.RasterYSize * Tools.PERCE / 100)
-            drv = gdal.GetDriverByName( 'MEM' )
-            reproj = drv.Create( '', width, height, dst_ds.RasterCount, DataType  )
-            reproj.SetProjection(dst_ds.GetProjectionRef())  
-            geoT = list( dst_ds.GetGeoTransform() )
-            geoT[1] = geoT[1] / (Tools.PERCE / 100)
-            geoT[5] = geoT[5] / (Tools.PERCE / 100)
-            geoT = tuple ( geoT )
-            reproj.SetGeoTransform( geoT )
-            gdal.ReprojectImage( dst_ds, reproj)
-            dst_ds = reproj
-            reproj = None
-
-        rgb = dst_ds.ReadAsArray()
-        if (rgb.ndim) == 3:
-            rgb = np.swapaxes(rgb,0,2)
-            rgb = np.swapaxes(rgb,0,1)    
-
-        if (bands > 2):
-            if (Tools. DETAIL): 
-                rgb = cv2.detailEnhance(rgb, sigma_s = Tools.SIG_S, sigma_r = Tools.SIG_R)
+        print('preparing image')  
+        if (dst_ds):      
+            bands = dst_ds.RasterCount                 
+            if (Tools.RESIZE):
+                #TODO: double check this!!!!!
+                width = int(dst_ds.RasterXSize * Tools.PERCE / 100)
+                height = int(dst_ds.RasterYSize * Tools.PERCE / 100)
+                drv = gdal.GetDriverByName( 'MEM' )
+                reproj = drv.Create( '', width, height, dst_ds.RasterCount, DataType  )
+                reproj.SetProjection(dst_ds.GetProjectionRef())  
+                geoT = list( dst_ds.GetGeoTransform() )
+                geoT[1] = geoT[1] / (Tools.PERCE / 100)
+                geoT[5] = geoT[5] / (Tools.PERCE / 100)
+                geoT = tuple ( geoT )
+                reproj.SetGeoTransform( geoT )
+                gdal.ReprojectImage( dst_ds, reproj)
+                dst_ds = reproj
+                reproj = None
     
-        if (Tools.GAMMA):
-            invGamma = 1.0 / Tools.GAM_C
-            table = np.array([((i / 255.0) ** invGamma) * 255
-                              for i in np.arange(0, 256)]).astype("uint8")
-            rgb = cv2.LUT(rgb.astype("uint8"), table)
-            rgb = np.float32(rgb)
-            
-        if (bands > 2): 
-            if (Tools.WHITE):      
-                if (dst_ds.RasterCount == 4):
-                    print('converting 4 channel to 3 channel image for white balanceing')
-                    rgb = rgb[:, :, :3]
-                wb = cv2.xphoto.createGrayworldWB()
-                wb.setSaturationThreshold( Tools.W_THR ) 
-                rgb  = wb.balanceWhite( rgb.astype("uint8") )
-
-        #create single bands raster 
-        drv = gdal.GetDriverByName( 'MEM' )
-        data = drv.Create( '', dst_ds.RasterXSize, dst_ds.RasterYSize, 1,  DataType  )
-        data.SetProjection( dst_ds.GetProjectionRef() )  
-        data.SetGeoTransform( dst_ds.GetGeoTransform() )
-        if (noData):
-            data.GetRasterBand(1).SetNoDataValue(noData)
+            rgb = dst_ds.ReadAsArray()
+            if (rgb.ndim) == 3:
+                rgb = np.swapaxes(rgb,0,2)
+                rgb = np.swapaxes(rgb,0,1)    
+    
+            if (bands > 2):
+                if (Tools. DETAIL): 
+                    rgb = cv2.detailEnhance(rgb, sigma_s = Tools.SIG_S, sigma_r = Tools.SIG_R)
         
-        if (bands == 1):
-            data.GetRasterBand(1).WriteArray( rgb )
-                                
-        if (dst_ds.RasterCount == 3):
-            gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
-            data.GetRasterBand(1).WriteArray( gray )
+            if (Tools.GAMMA):
+                invGamma = 1.0 / Tools.GAM_C
+                table = np.array([((i / 255.0) ** invGamma) * 255
+                                  for i in np.arange(0, 256)]).astype("uint8")
+                rgb = cv2.LUT(rgb.astype("uint8"), table)
+                rgb = np.float32(rgb)
+                
+            if (bands > 2): 
+                if (Tools.WHITE):      
+                    if (dst_ds.RasterCount == 4):
+                        print('converting 4 channel to 3 channel image for white balanceing')
+                        rgb = rgb[:, :, :3]
+                    wb = cv2.xphoto.createGrayworldWB()
+                    wb.setSaturationThreshold( Tools.W_THR ) 
+                    rgb  = wb.balanceWhite( rgb.astype("uint8") )
+    
+            #create single bands raster 
+            drv = gdal.GetDriverByName( 'MEM' )
+            data = drv.Create( '', dst_ds.RasterXSize, dst_ds.RasterYSize, 1,  DataType  )
+            data.SetProjection( dst_ds.GetProjectionRef() )  
+            data.SetGeoTransform( dst_ds.GetGeoTransform() )
+            if (noData):
+                data.GetRasterBand(1).SetNoDataValue(noData)
             
-        if (dst_ds.RasterCount == 4):
-            gray = cv2.cvtColor(rgb, cv2.COLOR_BGRA2GRAY)
-            data.GetRasterBand(1).WriteArray( gray )
-            
-        elif (bands == 2 or bands > 4 ):
-            print(len(bands)," channel images are not supported")   
-            
-        dst_ds = None
-        ImgList.append(data)  
-
-        stats = data.GetRasterBand(1).GetStatistics(True, True)
-        print("gray " ": min: ", stats[0], "max: ", stats[1])
-        proc_hist_list.append( cv2.calcHist([data.GetRasterBand(1).ReadAsArray()],[0],None, [int(stats[1]) - int(stats[0]) +1], [stats[0], stats[1]]))
-
-    Tools.DATA = ImgList
+            if (bands == 1):
+                data.GetRasterBand(1).WriteArray( rgb )
+                                    
+            if (dst_ds.RasterCount == 3):
+                gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+                data.GetRasterBand(1).WriteArray( gray )
+                
+            if (dst_ds.RasterCount == 4):
+                gray = cv2.cvtColor(rgb, cv2.COLOR_BGRA2GRAY)
+                data.GetRasterBand(1).WriteArray( gray )
+                
+            elif (bands == 2 or bands > 4 ):
+                print(len(bands)," channel images are not supported")   
+                
+            dst_ds = None
+            ImgList.append(data)  
+    
+            stats = data.GetRasterBand(1).GetStatistics(True, True)
+            print("gray " ": min: ", stats[0], "max: ", stats[1])
+            proc_hist_list.append( cv2.calcHist([data.GetRasterBand(1).ReadAsArray()],[0],None, [int(stats[1]) - int(stats[0]) +1], [stats[0], stats[1]]))
+        Tools.DATA = ImgList
     return hist_list, proc_hist_list
 
 '''
@@ -225,6 +226,7 @@ gaussBl = bool -> apply Gaussian blur
 def ReadImage(Tools):
     if (len(Tools.DATA) > 0):
         ImgList = []
+        Tools.DATA2 = []
         for i, img in enumerate(Tools.DATA):
             
             driver = gdal.GetDriverByName("MEM")
@@ -291,6 +293,8 @@ def ImgSizes(images):
         return(min_s)
     else:
         return(images[0].shape)
+    
+
 
 #Generating shearlet sysyems and detecting features----------------------------
 '''
@@ -391,7 +395,7 @@ def Detect(params):
     negative = pp[0][5]
     positive = pp[0][6]
     ridges   = pp[0][7]
-    #print(parameters[0][0], parameters[0][1])
+    print(pp[0][0], pp[0][1])
     if ridges:
         features, orientations = sys.detect(img, 
                                             min_contrast = min_contrast,  
@@ -401,6 +405,7 @@ def Detect(params):
                                             negative_only = negative
                                             )
     else:
+   
         features, orientations = sys.detect(img, 
                                             min_contrast = min_contrast,  
                                             offset = offset, 
@@ -428,18 +433,23 @@ def DetectFeatures(Tools):
     if (Tools.RIDGES):
         print('detecting features with ', len(Tools.R_SYS), " systems.")
     t = time.time()
-    feature_img = []
+
     # offset = CheckDetectionParams(offset)
     all_detec_params = [min_contrast, offset]
     all_detec_combs = list(itertools.product(*all_detec_params ))
     print(len(all_detec_combs), " detection combinations.")
     for i, img in enumerate(Tools.DATA3):    
+         ds = img 
          img = img.GetRasterBand(1).ReadAsArray()
          detected = np.zeros(img.shape)#, np.double)  
          func_params = []    
-         
+         drv = gdal.GetDriverByName( 'MEM' )
+         data = drv.Create( '', ds.RasterXSize, ds.RasterYSize, 1,  gdal.GDT_Float64 )
+         data.SetProjection( ds.GetProjectionRef() )  
+         data.SetGeoTransform( ds.GetGeoTransform() )
+         ds = None   
          if (Tools.RIDGES):
-             print('detecting ridges ', i, '/', len(Tools.DATA3))
+             print('detecting ridges ', i+1, '/', len(Tools.DATA3))
              ridges = True
              for detect in all_detec_combs:
                  for shear_sys in Tools.R_SYS:   
@@ -453,10 +463,10 @@ def DetectFeatures(Tools):
                      thinned_f = mask(r, thin_mask(r))
                      detected = np.add(detected, thinned_f)
          if (Tools.EDGES):
-            print('detecting edges ', i, '/', len(Tools.DATA3))
+            print('detecting edges ', i+1, '/', len(Tools.DATA3))
             ridges = False
             for detect in all_detec_combs:
-                for shear_sys in Tools.R_SYS:   
+                for shear_sys in Tools.E_SYS:   
                     func_params.append( (shear_sys, img, detect[0], detect[1], pivoting_scales, negative, positive, ridges) )              
             fp = zip(func_params)
             mw = 10
@@ -468,16 +478,17 @@ def DetectFeatures(Tools):
                     detected = np.add(detected, thinned_f)  
          norm = np.zeros(img[0].shape, np.double)
          normalized = cv2.normalize(detected, norm, 1.0, 0.0, cv2.NORM_MINMAX, dtype=cv2.CV_64F)          
-         feature_img.append( normalized )
+         data.GetRasterBand(1).WriteArray(normalized)
+         Tools.FEATURES.append(data)
+         data = None
     elapsed = time.time() - t
     print(" done in ", elapsed, "s")  
-    return(feature_img)
+
 
 #Enhancing edge/ridge ensembles------------------------------------------------
 '''
 
 '''
-
 def SigmoidNonlinearity(image):
     ridges_norm_sig = np.zeros(image.shape, np.double)
     w,h = image.shape
@@ -489,33 +500,38 @@ def SigmoidNonlinearity(image):
     return(ridges_norm_sig)
 
 def EnhanceEnsemble(Tools):
-    enhanced_images = []
+    enhanced_images  = []
+    Tools.E_FEATURES = []
     for i, img in enumerate(Tools.FEATURES):  
-        driver = gdal.GetDriverByName('MEM')
-        enh_feat = driver.CreateCopy('', img, strict=0)
+        drv = gdal.GetDriverByName('MEM')   
+        enh_feat = drv.Create( '', img.RasterXSize, img.RasterYSize, 1,  gdal.GDT_Int16 )
+        enh_feat.SetProjection( img.GetProjectionRef() )  
+        enh_feat.SetGeoTransform( img.GetGeoTransform() )
         img = img.GetRasterBand(1).ReadAsArray() 
         adjusted = Threshholding(img, Tools.THRESH, Tools.KSIZE)  
         skeleton = CleanUp(adjusted, Tools.MINSI)
         enh_feat.GetRasterBand(1).WriteArray(skeleton)
         enhanced_images.append( enh_feat )
         img = None   
-    return(enhanced_images)
+    Tools.E_FEATURES = enhanced_images
 
 def Threshholding(image, thresh, ksize):   
     print("Imgae thresholding")
     print(" Threshhold: ", thresh)
     print(" Kernel size: ", ksize)
     w,h = image.shape
-    print(thresh)
+    #e_kernel = np.ones((5,5),np.uint8)#kernel for erosion
     image[image < thresh] = 0
-    image  = cv2.GaussianBlur(image,(5,5),0)# reduce noise
-    kernel  = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(ksize,ksize))#elliptic kernel 
-    e_kernel = np.ones((5,5),np.uint8)#kernel for erosion
-    closing = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel) #closing small holes
-    opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel)#removing noise
-    erosion = cv2.erode(opening ,e_kernel,iterations = 1)#thinning the edges/ridges
+    if (thresh > 0):
+        image  = cv2.GaussianBlur(image,(5,5),0)# reduce noise
+        kernel  = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(int(ksize),int(ksize)))#elliptic kernel 
+        opening = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)#removing noise
+        closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel) #closing small holes
+    else:
+        closing = image
+    #erosion = cv2.erode(opening ,e_kernel,iterations = 1)#thinning the edges/ridges
     norm = np.zeros((w,h))
-    final = cv2.normalize(erosion, norm, 0, 255, cv2.NORM_MINMAX).astype("uint8")# normalize and convert to 8bit 
+    final = cv2.normalize(closing, norm, 0, 255, cv2.NORM_MINMAX).astype("uint8")# normalize and convert to 8bit 
     return( final )
 
 def CleanUp(image, m_size):
@@ -527,7 +543,7 @@ def CleanUp(image, m_size):
     nb_components = nb_components - 1
     img2 = output
     print("removing patches smaller than ", m_size)
-    for i in range(0, nb_components):
+    for i in range(0, nb_components):   #TODO: This is very slow
         if sizes[i] <= m_size:
             img2[output == i + 1] = 0
     img2[img2 > 0] = 255  
@@ -562,7 +578,6 @@ def BuildSHP(img_list, filename, tolerance = 1e-3):
 def WritePolyline2SHP(graph, dataset, outputFile, tolerance): 
     #first convert the graph edges into a list of numpy arrays lists
     poly_lines = []
-    print(dataset)
     for (s,e) in graph.edges():
         ps = graph[s][e]['pts']      
         poly_lines.append([ps[:,0], ps[:,1]])
@@ -574,7 +589,7 @@ def WritePolyline2SHP(graph, dataset, outputFile, tolerance):
         sys.exit( 1 )
         
 #  Create the shp-file (or open it if it exists)
-    ds = drv.Create(outputFile, 0, 0, 0, gdal.GDT_Unknown )
+    ds = drv.Create(outputFile, 0, 0, 0, gdal.GDT_Unknown ) #TODO:check this
     if ds is None:
         print ("Creation of output file failed. Trying to open file...\n")
         ds = ogr.Open(outputFile, 1) # 0 means read-only. 1 means writeable.
