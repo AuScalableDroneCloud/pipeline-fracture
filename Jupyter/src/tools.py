@@ -95,7 +95,7 @@ class Tools:
         
     def Prepare4Processing(self):
         style = {'description_width': 'initial'}
-        types = ["Resize", "DetailEnahnce", "GammaCorrection", "WhiteBalance"]
+        types = ["Resize", "DetailEnhance", "GammaCorrection", "WhiteBalance"]
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
         
         resize = w.IntText(value = self.PERCE, placeholder = self.PERCE, description='[%]:',style=style, disabled=False)
@@ -347,7 +347,7 @@ class Tools:
                 drv = None
    
     def SelectEnhancement(self):
-        types = ["Histogram equalization", "Gaussian blur", "Sharpen", "Edge", "Sobel", "Invert"]
+        types = ["Histogram equalization", "Gaussian blur", "Sharpen", "Sobel", "Edge", "Invert"]
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
         output = w.VBox(children=checkboxes)
         display(output)
@@ -363,10 +363,10 @@ class Tools:
                 self.SHARPE = change['new']
         def on_tick_3(change):
             if change['type'] == 'change' and change['name'] == 'value':
-                self.EDGE = change['new']
+                self.SOBEL = change['new']
         def on_tick_4(change):
             if change['type'] == 'change' and change['name'] == 'value':
-                self.SOBEL = change['new']
+                self.EDGE = change['new']
         def on_tick_5(change):
             if change['type'] == 'change' and change['name'] == 'value':
                 self.INVERT = change['new']
@@ -476,26 +476,21 @@ class Tools:
     def Enhancement(self):
         style = {'description_width': 'initial'}
         thresh = w.BoundedFloatText(value = self.THRESH, placeholder = self.THRESH, min = 0, max = 1, step=0.01, description='min pixel value:',style=style, disabled=False)
-        ksize  = w.BoundedFloatText(value = self.KSIZE, placeholder = self.KSIZE, min = 1, max = 1000, step=1, description='kernel size:',style=style, disabled=False)
         minsiz = w.BoundedFloatText(value = self.MINSI, placeholder = self.MINSI, min = 1, max = 1000000, step=1, description='min cluster size:',style=style, disabled=False)
-        all_widgets = [thresh, ksize, minsiz]
+        all_widgets = [thresh, minsiz]
         output = w.VBox(children=all_widgets)
         display(output)
         
         def change_thresh(change):
             if change['type'] == 'change' and change['name'] == 'value':
                 self.THRESH = change['new']       
-        def change_ksize(change):
-            if change['type'] == 'change' and change['name'] == 'value':
-                self.KSIZE = change['new']                     
-        
+                        
         def change_min_size(change):
             if change['type'] == 'change' and change['name'] == 'value':
                 self.MINSI = change['new']
                 
         all_widgets[0].observe(change_thresh)
-        all_widgets[1].observe(change_ksize)
-        all_widgets[2].observe(change_min_size)
+        all_widgets[1].observe(change_min_size)
         
     def ShowImage(img_list):  
         for i, img in enumerate(img_list):
