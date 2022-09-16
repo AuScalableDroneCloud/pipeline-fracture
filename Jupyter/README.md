@@ -2,6 +2,7 @@
 Australian Scalable Drone Cloud - Complex Shearlet Ridge and edge measure.
 This software is distributed under the GPLv3 license with CSIRO disclaimer. 
 The purpose of this software is to automatise the feature detection in any image and is particularilly designed for teh detection of geological discontinuities. In UAV deved orthomosaics this could be fracures but the workflow is alos applicabe to surface models or digital elevation models.
+The excetution can be performed eiterh via the pyhton script (ASDC_CoSheRem.py) or in a more interactive manner via the Jupyter notebook (ASDC_CoSheRem.ipynb). A cloud-hosted version is availabe [here](https://asdc.cloud.edu.au) as a processing pipleine fro UAV derived images.
 The workflow is part of [ASDC](https://asdc.io/).
 
 ![pic](wf.png)
