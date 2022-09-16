@@ -10,9 +10,9 @@ Below are the different processing steps are outlined. In bold are the names of 
 Please note that image tiling is only supported via (gdal_retile.py) fro singel images in the notebook. If image lists are passed to teh pyhton file (--file), no white sapces are allowed and the names need to be comma-seperated.
 
 ## ASDC_CoSheRem.py specific
-**--file** filename or list of comma-seperated names without white spaces
-**--out1** fileanme of the feature intesity map 
-**--out2** filename of the shp file 
+**--file** filename or list of comma-seperated names without white spaces <br />
+**--out1** fileanme of the feature intesity map <br />
+**--out2** filename of the shp file <br />
 
 ## Prepare Image
 Reads in the image and converts it to a single channel gray scale.
