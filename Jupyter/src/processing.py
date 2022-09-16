@@ -241,24 +241,26 @@ def ReadImage(Tools):
             if ( Tools.GAUSBL ):
                 gray = cv2.GaussianBlur(gray,(5,5),0)
            
-            if ( Tools.EDGE ):
-                m_filter = np.array([[0,0,-1,0,0],
-                                     [0,-1,-2,-1,0],
-                                     [-1,-2,16,-2,-1],
-                                     [0,-1,-2,-1,0],
-                                     [0,0,-1,0,0]])
-                gray = cv2.filter2D(gray, -1, m_filter)
-                
-            if ( Tools.SOBEL ):
-                x = cv2.Sobel(gray,cv2.CV_64F,1,0,ksize=5)
-                y = cv2.Sobel(gray,cv2.CV_64F,0,1,ksize=5)
-                gray = (0.5*x) + (0.5*y)
                 
             if (Tools.SHARPE):
                 kernel = np.array([[-1,-1,-1], 
                                    [-1,9,-1], 
                                    [-1,-1,-1]])
                 gray = cv2.filter2D(gray, -1, kernel)
+         
+            if ( Tools.EDGE ):
+                m_filter = np.array([[0,0,-1,0,0],
+                                     [0,-1,-2,-1,0],
+                                     [-1,-2,16,-2,-1],
+                                     [0,-1,-2,-1,0],
+                                     [0,0,-1,0,0]])
+                gray = cv2.filter2D(gray, -1, m_filter)   
+
+            if ( Tools.SOBEL ):
+                x = cv2.Sobel(gray,cv2.CV_64F,1,0,ksize=5)
+                y = cv2.Sobel(gray,cv2.CV_64F,0,1,ksize=5)
+                gray = (0.5*x) + (0.5*y)
+                
             if (Tools.INVERT):
                 gray = cv2.bitwise_not(gray)
             
