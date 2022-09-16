@@ -31,7 +31,8 @@ Edge: *Perfomes a 2D filtering operation on the image to perfom a simple edge de
  Invert: *Inverts the image using bit-wise inversion.* (--invert) <br />
  
 ## Generate systems
-Building shearlet systems for the images(s) absed ont eh parameter below. Note that lists and every possible parameter combination will be generated. Thsi allows muti-scale edge/ridge detection to be perfomed on the input images. For more detailed information ont eh parameters click [here](http://www.math.uni-bremen.de/cda/software/CoShREM_Parameter_Guide.pdf). <br />
+Building shearlet systems for the images(s) absed ont eh parameter below. Note that lists and every possible parameter combination will be generated. Thsi allows muti-scale edge/ridge detection to be perfomed on the input images as suggested by [Prabhakaran etla., 2019](https://doi.org/10.5194/se-10-2137-2019) <br />
+For more detailed information about the parameters click [here](http://www.math.uni-bremen.de/cda/software/CoShREM_Parameter_Guide.pdf). <br />
 waveletEffSupp: *Define the pixel length of Mexican hat wavelets used fro constructing teh systems.* (--wave) <br />
 gaussianEffSupp: *Pixle length of teh Guassian used in teh construction of teh shearlet.* (--gaus) <br />
 scalesPerOctave: *Number of intermediate scales fro each octave.* (--scal) <br />
