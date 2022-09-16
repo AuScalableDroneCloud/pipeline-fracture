@@ -5,6 +5,15 @@ The purpose of this software is to automatise the feature detection in any image
 The excetution can be performed eiterh via the pyhton script (ASDC_CoSheRem.py) or in a more interactive manner via the Jupyter notebook (ASDC_CoSheRem.ipynb). A cloud-hosted version is availabe [here](https://asdc.cloud.edu.au) as a processing pipleine fro UAV derived images.
 The workflow is part of [ASDC](https://asdc.io/).
 ![image](https://user-images.githubusercontent.com/82503083/190591385-dca6b50e-7555-4ebe-9c2c-99d71b9dbc34.png)
+
+Below are the different processing steps are outlined. In bold are the names of teh parameters as tehey appear in teh Jupyter notebook, the keywords in brackets at teh end are teh optional commands that can be passed via commadn line when excetuting the pyhton script.
+Please note that image tiling is only supported via (gdal_retile.py) fro singel images in the notebook. If image lists are passed to teh pyhton file (--file), no white sapces are allowed and the names need to be comma-seperated.
+
+## ASDC_CoSheRem.py specific
+**--file** filename or list of comma-seperated names without white spaces
+**--out1** fileanme of the feature intesity map 
+**--out2** filename of the shp file 
+
 ## Prepare Image
 Reads in the image and converts it to a single channel gray scale.
 Currently up to four channel images are supported with the option below:
@@ -25,7 +34,7 @@ The currently implemented options are: <br/>
  **Invert:** * Inverts the image using bit-wise inversion.* (--invert) <br />
  
 ## Generate systems
-Building shearlet systems for the images(s) absed ont eh parameter below. Note that lists and every possible parameter combination will be generated. Thsi allows muti-scale edge/ridge detection to be perfomed on the input images as suggested by [Prabhakaran etla., 2019](https://doi.org/10.5194/se-10-2137-2019) <br />
+Building shearlet systems for the images(s) absed ont eh parameter below. Note that lists and every possible parameter combination will be generated. This allows muti-scale edge/ridge detection to be perfomed on the input images as suggested by [Prabhakaran etla., 2019](https://doi.org/10.5194/se-10-2137-2019) <br />
 For more detailed information about the parameters click [here](http://www.math.uni-bremen.de/cda/software/CoShREM_Parameter_Guide.pdf). <br />
 **waveletEffSupp:** * Define the pixel length of Mexican hat wavelets used fro constructing teh systems.* (--wave) <br />
 **gaussianEffSupp:** * Pixel length of the Guassian used in the construction of the shearlet.* (--gaus) <br />
