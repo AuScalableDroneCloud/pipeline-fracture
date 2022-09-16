@@ -1,11 +1,14 @@
 # ASDC - CoSheRem
-Australian Scalable Drone Cloud - Complex Shearlet Ridge and edge measure
+Australian Scalable Drone Cloud - Complex Shearlet Ridge and edge measure.
+This software is distributed under the GPLv3 license with CSIRO disclaimer. 
+The purpose of this software is to automatise the feature detection in any image and is particularilly designed for teh detection of geological discontinuities. In UAV deved orthomosaics this could be fracures but the workflow is alos applicabe to surface models or digital elevation models.
+The workflow is part of [ASDC](https://asdc.io/).
 
 ![pic](wf.png)
 
 ## Prepare Image
 Reads in the image and converts it to a single channel gray scale.
-Currently up to four channel images are supported with teh option below:
+Currently up to four channel images are supported with the option below:
 
 Resize: *Resized the image based on the value given here in percent* (--resize) <br />
 DetailEnhancement: *Perfomes detail enhancemnt based on the sigma r and sigma s values given.* (--sigR; --sigS) <br />
@@ -46,7 +49,7 @@ For more detailed information about the parameters click [here](http://www.math.
 Features are detected in the images with the generated shaerlet systems. Each generated systems will be used to generate a ridge/edge intesity map that is then normalized. The parameters that can be chosed are: <br />
 **minContrast:** * Minimum contrast of edges/ridges to eb detected* (--minC) <br/>
 **offset:** * Defines teh scaling offset between even- and odd-symmetric shearlets.* (--offS) <br />
-**scalesUsedForPivotSearch:** * Defines which scales of teh shearlet systems are considered for determining teh orientationn fro which teh complex shearlet-based edge/ridge measure is computed.* (This parameter can only be changed in the Jupyter notebook) <br />
+**scalesUsedForPivotSearch:** * Defines which scales of the shearlet systems are considered for determining the orientationn for which the complex shearlet-based edge/ridge measure is computed.* (This parameter can only be changed in the Jupyter notebook) <br />
 **positive:** * Detect positive ridges.* (--positive) <br />
 **negative:** * Detect negative ridges.* (--negative) <br />
 
