@@ -64,5 +64,9 @@ The resutling feature collection will form the input for the **skeletonization**
 The fitting of polylines to teh skeletonized feature collection is performed using [skn.py](https://github.com/Image-Py/sknw) by Yan xiaolong.
 The software is distributed underBSD 3-Clause License.
 
-##Example
+## Example
+Example images of fracture networks obtained from https://research.tudelft.nl/en/datasets/fracture-network-patterns-from-the-parmelan-anticline-france-2 and
+https://publications.rwth-aachen.de/record/793416?ln=en 
+![image](https://user-images.githubusercontent.com/82503083/190590868-91ebeab0-8088-4639-a76f-50c54353d7cd.png)
+
 ![pic](ex.png)
