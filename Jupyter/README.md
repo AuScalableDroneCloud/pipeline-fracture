@@ -9,10 +9,10 @@ The workflow is part of [ASDC](https://asdc.io/).
 Reads in the image and converts it to a single channel gray scale.
 Currently up to four channel images are supported with the option below:
 
-Resize: *Resized the image based on the value given here in percent* (--resize) <br />
-DetailEnhancement: *Perfomes detail enhancemnt based on the sigma r and sigma s values given.* (--sigR; --sigS) <br />
-GammaCorrection: *Factor to perform gamma correction with.* (--gamma) <br />
-WhiteBalance: *White balance the image by applying Gray world white balance algorithm* (--wb) <br />
+**Resize:** * Resized the image based on the value given here in percent* (--resize) <br />
+**DetailEnhancement:** * Perfomes detail enhancemnt based on the sigma r and sigma s values given.* (--sigR; --sigS) <br />
+**GammaCorrection:** * Factor to perform gamma correction with.* (--gamma) <br />
+**WhiteBalance:** * White balance the image by applying Gray world white balance algorithm* (--wb) <br />
 
 ## Enhance Image
 Enhance the image prior to feature detection. 
@@ -20,16 +20,8 @@ The currently implemented options are: <br/>
 **Histogram equalization:** * Perfoms a histogram equalization* (--histEq) <br />
 **Gaussian blur:** * Perfomes gaussina blur on the image using a 5x5 kernel.* (--gaussB) <br />
 **Sharpen:** * Performs a 2D filtering of the image using a 3x3 kernel. (--sharpen) <br />
--1 -1 -1 <br />
--1  9 -1 <br />
--1 -1 -1 <br />
 **Sobel:** * Calculates the mean the mean horizontal and vertical gradient of the image using 5x5 kernels respectively.* (--sobel) <br />
-**Edge:** * Perfomes a 2D filtering operation on the image to perfom a simple edge detection using the 5x5 kernel below.* (--edge) <br />
- 0  0 -1  0  0 <br />
- 0 -1 -2 -1  0 <br />
--1 -2 16 -2 -1 <br />
- 0 -1 -2 -1  0 <br />
- 0  0 -1  0  0 <br />
+**Edge:** * Perfomes a 2D filtering operation on the image to perfom a simple edge detection using the 5x5 kernel.* (--edge) <br />
  **Invert:** * Inverts the image using bit-wise inversion.* (--invert) <br />
  
 ## Generate systems
