@@ -14,45 +14,45 @@ Below are the different processing steps are outlined. In bold are the names of 
 Reads in the image and converts it to a single channel grayscale.
 Currently up to four channel images are supported with the option below:
 
-**Resize:** * Resized the image based on the value given here in percent* (--resize) <br />
-**DetailEnhancement:** * Performs detail enhancement based on the sigma r and sigma s values given.* (--sigR; --sigS) <br />
-**GammaCorrection:** * Factor to perform gamma correction with.* (--gamma) <br />
-**WhiteBalance:** * White balance the image by applying Gray world white balance algorithm* (--wb) <br />
+**Resize:** *Resized the image based on the value given here in percent* (--resize) <br />
+**DetailEnhancement:** *Performs detail enhancement based on the sigma r and sigma s values given.* (--sigR; --sigS) <br />
+**GammaCorrection:** *Factor to perform gamma correction with.* (--gamma) <br />
+**WhiteBalance:** *White balance the image by applying Gray world white balance algorithm* (--wb) <br />
 
 ## Enhance Image
 Enhance the image prior to feature detection. 
 The currently implemented options are: <br/>
-**Histogram equalization:** * Performs a histogram equalization.* (--histEq) <br />
-**Gaussian blur:** * Gaussian blur using a 5x5 kernel.* (--gaussB) <br />
-**Sharpen:** * Sharpen the image using a 3x3 kernel.* (--sharpen) <br />
-**Sobel:** * Calculates the mean the mean horizontal and vertical gradient of the image using 5x5 kernels respectively. * (--sobel) <br />
-**Edge:** * Perform a simple edge detection using a 5x5 kernel.* * (--edge) <br />
- **Invert:** * Inverts the image using bit-wise inversion.* (--invert) <br />
+**Histogram equalization:** *Performs a histogram equalization.* (--histEq) <br />
+**Gaussian blur:** *Gaussian blur using a 5x5 kernel.* (--gaussB) <br />
+**Sharpen:** *Sharpen the image using a 3x3 kernel.* (--sharpen) <br />
+**Sobel:** *Calculates the mean the mean horizontal and vertical gradient of the image using 5x5 kernels respectively. * (--sobel) <br />
+**Edge:** *Perform a simple edge detection using a 5x5 kernel.* * (--edge) <br />
+ **Invert:** *Inverts the image using bit-wise inversion.* (--invert) <br />
  
 ## Generate systems
 Building shearlet systems for the images(s) based on the parameter below. Note that lists and every possible parameter combination will be generated. This allows muti-scale edge/ridge detection to be performed on the input images as suggested by [Prabhakaran etla., 2019](https://doi.org/10.5194/se-10-2137-2019) <br />
 For more detailed information about the parameters click [here](http://www.math.uni-bremen.de/cda/software/CoShREM_Parameter_Guide.pdf). <br />
-**waveletEffSupp:** * Define the pixel length of Mexican hat wavelets used for constructing the systems.* (--wave) <br />
-**gaussianEffSupp:** * Pixel length of the Gaussian used in the construction of the shearlet.* (--gaus) <br />
-**scalesPerOctave:** * Number of intermediate scales for each octave.* (--scal) <br />
-**shearLevel:** * Number of differently oriented shearlets at each scale.* (--shea) <br />
-**alpha:** * Parameter governing the degree of anisotropy introduced via scaling.* (--alph) <br />
-**octaves:** * Number of octaves spanning the shearlet system.* (--octa) <br />
-**Ridges:** * Detect ridges in the image* (--ridges) <br />
-**Edges:** * Detect edges in the image* (--edges) <br />
+**waveletEffSupp:** *Define the pixel length of Mexican hat wavelets used for constructing the systems.* (--wave) <br />
+**gaussianEffSupp:** *Pixel length of the Gaussian used in the construction of the shearlet.* (--gaus) <br />
+**scalesPerOctave:** *Number of intermediate scales for each octave.* (--scal) <br />
+**shearLevel:** *Number of differently oriented shearlets at each scale.* (--shea) <br />
+**alpha:** *Parameter governing the degree of anisotropy introduced via scaling.* (--alph) <br />
+**octaves:** *Number of octaves spanning the shearlet system.* (--octa) <br />
+**Ridges:** *Detect ridges in the image* (--ridges) <br />
+**Edges:** *Detect edges in the image* (--edges) <br />
 
 ## Detect features
 Features are detected in the images with the generated shaerlet systems. Each generated systems will be used to generate a ridge/edge intensity map that is then normalized. The parameters are: <br />
-**minContrast:** * Minimum contrast of edges/ridges to be detected* (--minC) <br/>
-**offset:** * Defines the scaling offset between even- and odd-symmetric shearlets.* (--offS) <br />
-**scalesUsedForPivotSearch:** * * Defines which scales of the shearlet systems are considered for determining the orientation for which the complex shearlet-based edge/ridge measure is computed.* (This parameter can only be changed in the Jupyter notebook) * (This parameter can only be changed in the Jupyter notebook) <br />
-**positive:** * Detect positive ridges.* (--positive) <br />
-**negative:** * Detect negative ridges.* (--negative) <br />
+**minContrast:** *Minimum contrast of edges/ridges to be detected* (--minC) <br/>
+**offset:** *Defines the scaling offset between even- and odd-symmetric shearlets.* (--offS) <br />
+**scalesUsedForPivotSearch:** * *Defines which scales of the shearlet systems are considered for determining the orientation for which the complex shearlet-based edge/ridge measure is computed.* (This parameter can only be changed in the Jupyter notebook) * (This parameter can only be changed in the Jupyter notebook) <br />
+**positive:** *Detect positive ridges.* (--positive) <br />
+**negative:** *Detect negative ridges.* (--negative) <br />
 
 ## Filter edges/ridges
 The feature intensity map can be filtered based on a pixel value threshold and considering the size of connected pixel clusters. The two parameters are: <br />
-**min pixel value:** * Features below this threshold are omitted.* (--thresh) <br />
-**min cluster size:** * The minimum size in pixels of clusters to keep in the image.* * (--minS) <br />
+**min pixel value:** *Features below this threshold are omitted.* (--thresh) <br />
+**min cluster size:** *The minimum size in pixels of clusters to keep in the image.* * (--minS) <br />
 The resulting feature collection will form the input for the **skeletonization**. 
 
 ## Polylinefitting
