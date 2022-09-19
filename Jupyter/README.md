@@ -60,6 +60,7 @@ The fitting of polylines to teh skeletonized feature collection is performed usi
 The software is distributed under a BSD 3-Clause License.
 
 ## Example
-Example images of fracture networks obtained from https://research.tudelft.nl/en/datasets/fracture-network-patterns-from-the-parmelan-anticline-france-2
-and https://publications.rwth-aachen.de/record/793416?ln=en 
+Example images of fracture networks obtained from <br />
+https://research.tudelft.nl/en/datasets/fracture-network-patterns-from-the-parmelan-anticline-france-2 and <br />
+https://publications.rwth-aachen.de/record/793416?ln=en 
 ![image](https://user-images.githubusercontent.com/82503083/190591211-6fe74e9f-1570-4ebc-8837-c9f71c08f9a2.png)
