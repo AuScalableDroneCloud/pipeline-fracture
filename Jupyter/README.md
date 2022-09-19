@@ -25,7 +25,7 @@ The currently implemented options are: <br/>
 **Histogram equalization:** *Performs a histogram equalization.* (--histEq) <br />
 **Gaussian blur:** *Gaussian blur using a 5x5 kernel.* (--gaussB) <br />
 **Sharpen:** *Sharpen the image using a 3x3 kernel.* (--sharpen) <br />
-**Sobel:** *Calculates the mean the mean horizontal and vertical gradient of the image using 5x5 kernels respectively. * (--sobel) <br />
+**Sobel:** *Calculates the mean the mean horizontal and vertical gradient of the image using 5x5 kernels respectively.* (--sobel) <br />
 **Edge:** *Perform a simple edge detection using a 5x5 kernel.* * (--edge) <br />
  **Invert:** *Inverts the image using bit-wise inversion.* (--invert) <br />
  
