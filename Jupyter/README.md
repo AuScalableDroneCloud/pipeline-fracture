@@ -22,11 +22,11 @@ Currently up to four channel images are supported with the option below:
 ## Enhance Image
 Enhance the image prior to feature detection. 
 The currently implemented options are: <br/>
-**Histogram equalization:** * Perfoms a histogram equalization* (--histEq) <br />
-**Gaussian blur:** * Perfomes gaussina blur on the image using a 5x5 kernel.* (--gaussB) <br />
-**Sharpen:** * Performs a 2D filtering of the image using a 3x3 kernel. (--sharpen) <br />
-**Sobel:** * Calculates the mean the mean horizontal and vertical gradient of the image using 5x5 kernels respectively.* (--sobel) <br />
-**Edge:** * Perfomes a 2D filtering operation on the image to perfom a simple edge detection using the 5x5 kernel.* (--edge) <br />
+**Histogram equalization:** * Performs a histogram equalization.* (--histEq) <br />
+**Gaussian blur:** * Gaussian blur using a 5x5 kernel.* (--gaussB) <br />
+**Sharpen:** * Sharpen the image using a 3x3 kernel.* (--sharpen) <br />
+**Sobel:** * Calculates the mean the mean horizontal and vertical gradient of the image using 5x5 kernels respectively. * (--sobel) <br />
+**Edge:** * Perform a simple edge detection using a 5x5 kernel.* * (--edge) <br />
  **Invert:** * Inverts the image using bit-wise inversion.* (--invert) <br />
  
 ## Generate systems
