@@ -6,12 +6,12 @@ The workflow is part of [ASDC](https://asdc.io/).
 Below are the different processing steps are outlined. In bold are the names of the parameters as they appear in the Jupyter notebook, the keywords in brackets at the end are the optional commands that can be passed via command line when executing the python script. Please note that image tiling is only supported via (gdal_retile.py) for single images in the notebook. If image lists are passed to the python file (--file), no white spaces are allowed, and the names need to be comma-separated.
 
 ## ASDC_CoSheRem.py specific
-**--file** filename or list of comma-seperated names without white spaces <br />
-**--out1** fileanme of the feature intesity map <br />
-**--out2** filename of the shp file <br />
+**--file** filename or list of comma-separated names without white spaces  <br />
+**--out1** filename of the feature intensity map  <br />
+**--out2** filename of the shp file file <br />
 
 ## Prepare Image
-Reads in the image and converts it to a single channel gray scale.
+Reads in the image and converts it to a single channel grayscale.
 Currently up to four channel images are supported with the option below:
 
 **Resize:** * Resized the image based on the value given here in percent* (--resize) <br />
