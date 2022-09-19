@@ -42,22 +42,22 @@ For more detailed information about the parameters click [here](http://www.math.
 **Edges:** * Detect edges in the image* (--edges) <br />
 
 ## Detect features
-Features are detected in the images with the generated shaerlet systems. Each generated systems will be used to generate a ridge/edge intesity map that is then normalized. The parameters that can be chosed are: <br />
-**minContrast:** * Minimum contrast of edges/ridges to eb detected* (--minC) <br/>
-**offset:** * Defines teh scaling offset between even- and odd-symmetric shearlets.* (--offS) <br />
-**scalesUsedForPivotSearch:** * Defines which scales of the shearlet systems are considered for determining the orientationn for which the complex shearlet-based edge/ridge measure is computed.* (This parameter can only be changed in the Jupyter notebook) <br />
+Features are detected in the images with the generated shaerlet systems. Each generated systems will be used to generate a ridge/edge intensity map that is then normalized. The parameters are: <br />
+**minContrast:** * Minimum contrast of edges/ridges to be detected* (--minC) <br/>
+**offset:** * Defines the scaling offset between even- and odd-symmetric shearlets.* (--offS) <br />
+**scalesUsedForPivotSearch:** * * Defines which scales of the shearlet systems are considered for determining the orientation for which the complex shearlet-based edge/ridge measure is computed.* (This parameter can only be changed in the Jupyter notebook) * (This parameter can only be changed in the Jupyter notebook) <br />
 **positive:** * Detect positive ridges.* (--positive) <br />
 **negative:** * Detect negative ridges.* (--negative) <br />
 
 ## Filter edges/ridges
-The feature intesity map can be filtered based on a pixel value threshold and considering teh size of connected pixel clusters. The two parameters are: <br />
+The feature intensity map can be filtered based on a pixel value threshold and considering the size of connected pixel clusters. The two parameters are: <br />
 **min pixel value:** * Features below this threshold are omitted.* (--thresh) <br />
-**min cluster size:** * The minimum size in pixels of clsuters to keep in th eimage.* (--minS) <br />
-The resutling feature collection will form the input for the **skeletonization**. 
+**min cluster size:** * The minimum size in pixels of clusters to keep in the image.* * (--minS) <br />
+The resulting feature collection will form the input for the **skeletonization**. 
 
 ## Polylinefitting
 The fitting of polylines to teh skeletonized feature collection is performed using [skn.py](https://github.com/Image-Py/sknw) by Yan xiaolong.
-The software is distributed underBSD 3-Clause License.
+The software is distributed under a BSD 3-Clause License.
 
 ## Example
 Example images of fracture networks obtained from https://research.tudelft.nl/en/datasets/fracture-network-patterns-from-the-parmelan-anticline-france-2
