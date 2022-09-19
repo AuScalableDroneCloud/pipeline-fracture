@@ -30,13 +30,13 @@ The currently implemented options are: <br/>
  **Invert:** * Inverts the image using bit-wise inversion.* (--invert) <br />
  
 ## Generate systems
-Building shearlet systems for the images(s) absed ont eh parameter below. Note that lists and every possible parameter combination will be generated. This allows muti-scale edge/ridge detection to be perfomed on the input images as suggested by [Prabhakaran etla., 2019](https://doi.org/10.5194/se-10-2137-2019) <br />
+Building shearlet systems for the images(s) based on the parameter below. Note that lists and every possible parameter combination will be generated. This allows muti-scale edge/ridge detection to be performed on the input images as suggested by [Prabhakaran etla., 2019](https://doi.org/10.5194/se-10-2137-2019) <br />
 For more detailed information about the parameters click [here](http://www.math.uni-bremen.de/cda/software/CoShREM_Parameter_Guide.pdf). <br />
-**waveletEffSupp:** * Define the pixel length of Mexican hat wavelets used fro constructing teh systems.* (--wave) <br />
-**gaussianEffSupp:** * Pixel length of the Guassian used in the construction of the shearlet.* (--gaus) <br />
+**waveletEffSupp:** * Define the pixel length of Mexican hat wavelets used for constructing the systems.* (--wave) <br />
+**gaussianEffSupp:** * Pixel length of the Gaussian used in the construction of the shearlet.* (--gaus) <br />
 **scalesPerOctave:** * Number of intermediate scales for each octave.* (--scal) <br />
 **shearLevel:** * Number of differently oriented shearlets at each scale.* (--shea) <br />
-**alpha:** * Parameter governing the degree of anisotropy intriduced via scaling* (--alph) <br />
+**alpha:** * Parameter governing the degree of anisotropy introduced via scaling.* (--alph) <br />
 **octaves:** * Number of octaves spanning the shearlet system.* (--octa) <br />
 **Ridges:** * Detect ridges in the image* (--ridges) <br />
 **Edges:** * Detect edges in the image* (--edges) <br />
