@@ -3,7 +3,11 @@ Australian Scalable Drone Cloud - Complex Shearlet Ridge and edge measure. This 
 The workflow is part of the [ASDC](https://asdc.io/).
 ![image](https://user-images.githubusercontent.com/82503083/190591385-dca6b50e-7555-4ebe-9c2c-99d71b9dbc34.png)
 
+The software deponds on [gdal](https://pypi.org/project/GDAL/), [openCV](https://pypi.org/project/opencv-python/), and [PyCoShREM](https://github.com/rgcda/PyCoShREM).
+
 Below are the different processing steps are outlined. In bold are the names of the parameters as they appear in the Jupyter notebook, the keywords in brackets at the end are the optional commands that can be passed via command line when executing the python script. Please note that image tiling is only supported via (gdal_retile.py) for single images in the notebook. If image lists are passed to the python file (--file), no white spaces are allowed, and the names need to be comma-separated.
+
+
 
 ## ASDC_CoSheRem.py specific
 **--file** filename or list of comma-separated names without white spaces  <br />
