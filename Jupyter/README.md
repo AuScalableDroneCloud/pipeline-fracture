@@ -1,8 +1,5 @@
 # ASDC - CoSheRem
-Australian Scalable Drone Cloud - Complex Shearlet Ridge and edge measure.
-This software is distributed under the GPLv3 license with CSIRO disclaimer. 
-The purpose of this software is to automatise the feature detection in any image and is particularilly designed for teh detection of geological discontinuities. In UAV deved orthomosaics this could be fracures but the workflow is alos applicabe to surface models or digital elevation models.
-The excetution can be performed eiterh via the pyhton script (ASDC_CoSheRem.py) or in a more interactive manner via the Jupyter notebook (ASDC_CoSheRem.ipynb). A cloud-hosted version is availabe [here](https://asdc.cloud.edu.au) as a processing pipleine fro UAV derived images.
+Australian Scalable Drone Cloud - Complex Shearlet Ridge and edge measure. This software is distributed under the GPLv3 license with CSIRO disclaimer. The purpose of this software is to automatise the feature detection in any image and is particularly designed for the detection of geological discontinuities. In UAV derived orthomosaics this could be fractures but the workflow is also applicable to surface models or digital elevation models. The execution can be performed either via the python script (ASDC_CoSheRem.py) or in a more interactive manner via the Jupyter notebook (ASDC_CoSheRem.ipynb). A cloud-hosted version is available [here](https://asdc.cloud.edu.au) as a processing pipeline for UAV derived images. 
 The workflow is part of [ASDC](https://asdc.io/).
 ![image](https://user-images.githubusercontent.com/82503083/190591385-dca6b50e-7555-4ebe-9c2c-99d71b9dbc34.png)
 
