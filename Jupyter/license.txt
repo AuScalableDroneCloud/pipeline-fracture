@@ -31,4 +31,7 @@ https://github.com/Image-Py/sknw
 BSD 3-Clause License
 (c) 2017, Yan xiaolong
 
-
+PyCoShREM
+https://github.com/rgcda/PyCoShREM
+GPLV3
+(c) 2007
