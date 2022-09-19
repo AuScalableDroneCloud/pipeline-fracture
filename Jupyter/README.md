@@ -15,7 +15,7 @@ Reads in the image and converts it to a single channel grayscale.
 Currently up to four channel images are supported with the option below:
 
 **Resize:** * Resized the image based on the value given here in percent* (--resize) <br />
-**DetailEnhancement:** * Perfomes detail enhancemnt based on the sigma r and sigma s values given.* (--sigR; --sigS) <br />
+**DetailEnhancement:** * Performs detail enhancement based on the sigma r and sigma s values given.* (--sigR; --sigS) <br />
 **GammaCorrection:** * Factor to perform gamma correction with.* (--gamma) <br />
 **WhiteBalance:** * White balance the image by applying Gray world white balance algorithm* (--wb) <br />
 
