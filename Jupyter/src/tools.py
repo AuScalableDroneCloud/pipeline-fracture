@@ -17,9 +17,8 @@
 """
 
 import os
-import cv2
 import sys
-#import asdc
+import asdc
 import pathlib
 import numpy as np
 from osgeo import gdal
@@ -527,33 +526,7 @@ class Tools:
             ax2.imshow(img2, cmap="gray_r")
             ax2.get_xaxis().set_visible(False)
             ax2.get_yaxis().set_visible(False)
-    
-    def GetAssets(self, project, task):
-        assests = ['orthophoto.tif', 'dsm.tif']
-        pathlib.Path(task).mkdir(parents=True, exist_ok=True)
-        os.chdir(task)
-        for i in assests:
-            asdc.download_asset(project, task, i)
-            if "orthophoto" in i or "dsm" in i:
-                data = gdal.Open(i, gdal.GA_ReadOnly)  
-                Tools.ASSETS.append( (str(i), data) )     
-                print('added', i, 'to downloaded assets.')  
-        Tools.DATA.append(Tools.ASSETS[0][1])
-
-    def SelectAsset(self):     
-        names = [] 
-        for f in Tools.ASSETS:
-            names.append(f[0])     
-        file = w.Dropdown(options=names,description='Assets:', value='orthophoto.tif', disabled=False,)
-        display(file)  
-        def on_change(change):
-            if change['type'] == 'change' and change['name'] == 'value':
-                Tools.DATA = []
-                for d in Tools.ASSETS:
-                    if d[0] == change['new']:
-                        Tools.FILE.append(d[1])
-        file.observe(on_change)
-        
+         
     def SelectFilename(self):
         filename = w.Text(value='test', placeholder='filename', description='Filename:', disabled=False)
         display(filename)
@@ -583,3 +556,30 @@ class Tools:
             outdata.FlushCache() 
             print("written image ", filename)
             outdata = None
+       
+#WEBODM_part-------------------------------------------------------------------
+    def GetAssets(self, project, task):
+        assests = ['orthophoto.tif', 'dsm.tif']
+        pathlib.Path(task).mkdir(parents=True, exist_ok=True)
+        os.chdir(task)
+        for i in assests:
+            asdc.download_asset(project, task, i)
+            if "orthophoto" in i or "dsm" in i:
+                data = gdal.Open(i, gdal.GA_ReadOnly)  
+                Tools.ASSETS.append( (str(i), data) )     
+                print('added', i, 'to downloaded assets.')  
+        Tools.DATA.append(Tools.ASSETS[0][1])
+
+    def SelectAsset(self):     
+        names = [] 
+        for f in Tools.ASSETS:
+            names.append(f[0])     
+        file = w.Dropdown(options=names,description='Assets:', value='orthophoto.tif', disabled=False,)
+        display(file)  
+        def on_change(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                Tools.DATA = []
+                for d in Tools.ASSETS:
+                    if d[0] == change['new']:
+                        Tools.FILE.append(d[1])
+        file.observe(on_change)

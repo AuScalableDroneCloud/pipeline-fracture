@@ -1,7 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Mar 14 12:28:28 2022
-
+*********************************************************************
+*				DO NOT MODIFY THIS HEADER					        *
+*					FRACG - FRACture Graph					        *
+*				Network analysis and meshing software		        *
+*															        *
+*						(c) 2022 CSIRO							    *
+*GNU General Public Licence version 3 (GPLv3) with CSIRO Disclaimer	*
+*																    *
+*						Prepared by CSIRO						    *
+*																    *
+*					See license for full restrictions 			    *
+*********************************************************************
 @author: kel321
 """
 import sys
@@ -259,7 +269,7 @@ def ReadImage(Tools):
             if ( Tools.SOBEL ):
                 x = cv2.Sobel(gray,cv2.CV_64F,1,0,ksize=5)
                 y = cv2.Sobel(gray,cv2.CV_64F,0,1,ksize=5)
-                gray = (0.5*x) + (0.5*y)
+                gray = np.abs( (0.5*x) + (0.5*y) )
                 
             if (Tools.INVERT):
                 gray = cv2.bitwise_not(gray)
@@ -355,11 +365,14 @@ def GenerateSystems(Tools):
         for param in all_sys_combs:
             params.append([size, param[0], param[1], param[2],param[3],param[4],param[5]])
         iter_param = zip(params)
-        mw = 10
+        print("CPUs: ",os.cpu_count())
         
-        if (len(all_sys_combs) < 10):
+        mw = os.cpu_count()
+        
+        if (len(all_sys_combs) < os.cpu_count()):
             mw = len(all_sys_combs)
             
+        mw = 5   
         if (Tools.RIDGES):
             print(" ridge systems")
             Tools.R_SYS.append([])
@@ -445,6 +458,8 @@ def DetectFeatures(Tools):
          data.SetGeoTransform( ds.GetGeoTransform() )
          ds = None   
          
+         print("CPUs: ",os.cpu_count())
+         mw = os.cpu_count()
          if (Tools.RIDGES):
              print('detecting ridges ', i+1, '/', len(Tools.DATA3))
              ridges = True
@@ -457,9 +472,10 @@ def DetectFeatures(Tools):
                      func_params.append( (shear_sys, img, detect[0], detect[1], pivoting_scales, negative, positive, ridges) )    
 
              fp = zip(func_params)
-             mw = 10
-             if (len(all_detec_combs) < 10):
+             if (len(all_detec_combs) < os.cpu_count()):
                  mw = len(all_detec_combs)   
+           
+                 
              with ProcessPoolExecutor(max_workers = mw) as executor:
                  for r, o in executor.map(Detect, fp): 
                      thinned_f = mask(r, thin_mask(r))
@@ -477,9 +493,10 @@ def DetectFeatures(Tools):
                     func_params.append( (shear_sys, img, detect[0], detect[1], pivoting_scales, negative, positive, ridges) ) 
 
             fp = zip(func_params)
-            mw = 10
-            if (len(all_detec_combs) < 10):
+            if (len(all_detec_combs) < os.cpu_count()):
                 mw = len(all_detec_combs)   
+                
+             
             with ProcessPoolExecutor(max_workers = mw) as executor:
                 for r, o in executor.map(Detect, fp): 
                     thinned_f = mask(r, thin_mask(r))
