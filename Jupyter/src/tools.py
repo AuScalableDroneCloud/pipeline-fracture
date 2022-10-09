@@ -18,7 +18,7 @@
 
 import os
 import sys
-import asdc
+#import asdc
 import pathlib
 import numpy as np
 from osgeo import gdal
@@ -28,7 +28,6 @@ from coshrem.util.image import overlay
 from IPython.display import display
 sys.path.append('src')
 import json
-
 import gdal_retile
 
 class Tools: 
@@ -90,7 +89,12 @@ class Tools:
     THRESH = 0.0 
     KSIZE = 3   
     MINSI = 1
-
+    
+    #names for metadata
+    USER = ''
+    PASSW = ''
+    SHP = ''
+    GEOTIF = ''
         
     def Prepare4Processing(self):
         style = {'description_width': 'initial'}
@@ -527,13 +531,23 @@ class Tools:
             ax2.get_xaxis().set_visible(False)
             ax2.get_yaxis().set_visible(False)
          
-    def SelectFilename(self):
+    def SelectFilename(self, T):
+        if (str(T) == 'tif'):
+            Tools.GEOTIF = 'test'
+        if (str(T) == 'shp'):
+            Tools.SHP = 'test'
         filename = w.Text(value='test', placeholder='filename', description='Filename:', disabled=False)
         display(filename)
         def on_change(change):
             if change['type'] == 'change' and change['name'] == 'value':
-                Tools.FILENAME = change['new']   
+                if (str(T) == 'tif'):
+                    Tools.GEOTIF = change['new'] 
+                if (str(T) == 'shp'):
+                    Tools.SHP = change['new'] 
         filename.observe(on_change)
+           
+
+        
     '''
     write images as tif files:
     If georeferencing information are given write a geotiff
@@ -543,7 +557,7 @@ class Tools:
     features = list(Numpy array)
     filename = str
     '''
-    def WriteImage(img_list, filename): 
+    def WriteImage(self, img_list, filename): 
         print("Images will be written into ", os.getcwd())
         for i, img in enumerate(img_list):
             cur_dir = os.getcwd()
@@ -555,6 +569,8 @@ class Tools:
             outdata.GetRasterBand(1).WriteArray(img.GetRasterBand(1).ReadAsArray() )
             outdata.FlushCache() 
             print("written image ", filename)
+            #TODO: Needs to be able to work with lists, currently this will only pass the last name in case of a list
+            Tools.GEOTIF = path
             outdata = None
        
 #WEBODM_part-------------------------------------------------------------------
@@ -583,3 +599,28 @@ class Tools:
                     if d[0] == change['new']:
                         Tools.FILE.append(d[1])
         file.observe(on_change)
+        
+#CSIRO DAP---------------------------------------------------------------------
+    def GetCredential(self):
+        user  = w.Text(value='', placeholder='', description='Username:', disabled=False)
+        passw = w.Text(value='', placeholder='', description='Password:', disabled=False)
+        all_widgets = [user, passw]
+        output = w.VBox(children=all_widgets)
+        display(output)
+        
+        def change_user(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.USER = change['new']       
+                        
+        def change_passw(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.PASSW = change['new']
+                
+        all_widgets[0].observe(change_user)
+        all_widgets[1].observe(change_passw)
+        
+        
+        
+        
+        
+        
