@@ -18,7 +18,7 @@
 
 import os
 import sys
-#import asdc
+import asdc
 import pathlib
 import numpy as np
 from osgeo import gdal
