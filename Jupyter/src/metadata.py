@@ -1,105 +1,114 @@
 #
 # writes metadata to the DAP (daptst) as a draft to the exsiting collection id: 80194
-# uses the REST credentials from login.json
-# processes the metadata.json file
 #
 
 import requests
-import os
+import sys, os
 import json
-#import tools
-from datetime import datetime
+from datetime import datetime, date
 
 #TODO: How do we get this to work with lists?
+#Add flag to write JSON
+
+
+def datetime_to_isoformat(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+
+
+
+def CreateMetaData(Tools):
+    if (Tools.JSON == True and Tools.DAP == False):
+        print('writing JSON')
+        CreateJSON(Tools)
+    if (Tools.DAP == True):
+        print('writing JSON and publishing to CSIRo DAP (test).')
+        WriteCollection(Tools)
+    if (Tools.TERN == True):
+        print('publishing to TERN storage not implemented')
+
 def CreateJSON(Tools):
-    in_name   = Tools.FILE[0]
-    out_name1 = Tools.GEOTIF
-    out_name2 = Tools.SHP
+    if (len(Tools.FILE) > 0):
+        name = str(Tools.J_NAME) + '.json'
+        in_name   = Tools.FILE[0]
+        out_name1 = Tools.GEOTIF
+        out_name2 = Tools.SHP
     
-    m_data ={
-    	"name": "Structural Geology",
-    	"description": "Fracture detection with Complex Shearlet Transform based on https://github.com/rahulprabhakaran/Automatic-Fracture-Detection-Code Using the Python port of the Matlab Toolbox Complex Shearlet-Based Ridge and Edge Measurement by Rafael Reisenhofer: https://github.com/rgcda/PyCoShREM",
-    	"notebook": {
-    		"file": "CoSh_ensemble_webodm.ipynb",
-    		"version": 1.0,
-    		"parameters": {
-
-                
-                "edges": Tools.EDGES, 
-                "ridges": Tools.RIDGES,
-                " positive": Tools.POSITV,
-                " negative": Tools.NEGATI,
-    			"waveletEffSupp": Tools.WAVEEF,
-    			"gaussianEffSupp": Tools.GAUSEF,
-    			"scalesPerOctave": Tools.SCALES,
-    			"shearLevel": Tools.SHEARL,
-    			"alpha": Tools.ALPHA,
-    			"octaves": Tools.OCTAVE,
-
-    			"minContrast": Tools.MINCON,
-    			"offset": Tools.OFFSET,
-    			"scalesUsedForPivotSearch": Tools.PIVOTS,
-                
-    			"min pixel value": Tools.THRESH,
-    			"min cluster size": Tools. MINSI
-    		},
-    		"assets": [{
-        		"type": "input",
-                "title": "Structural Geology",
-                "creator": "Uli Kelka",
-        		"description": "orthomosaic",
-        		"name": in_name,
-        		"format": str(os.path.splitext(in_name)[1])
-    			},     
-    			{
-    				"type": "output",
+        m_data = {
+        	"name": "Structural Geology",
+        	"description": "Fracture detection with Complex Shearlet Transform based on https://github.com/rahulprabhakaran/Automatic-Fracture-Detection-Code Using the Python port of the Matlab Toolbox Complex Shearlet-Based Ridge and Edge Measurement by Rafael Reisenhofer: https://github.com/rgcda/PyCoShREM",
+        	"notebook": {
+        		"file": "CoSh_ensemble_webodm.ipynb",
+        		"version": 1.0,
+        		"parameters": {
+                    "Projection ": Tools.PROJ,
+                    "Geotransform ": Tools.GEOT,
+                    "Size ": Tools.EXTEND,
+                    "edges": Tools.EDGES, 
+                    "ridges": Tools.RIDGES,
+                    " positive": Tools.POSITV,
+                    " negative": Tools.NEGATI,
+        			"waveletEffSupp": str(Tools.WAVEEF)  + " px",
+        			"gaussianEffSupp": str(Tools.GAUSEF) + " px",
+        			"scalesPerOctave": Tools.SCALES,
+        			"shearLevel": Tools.SHEARL,
+        			"alpha": Tools.ALPHA,
+        			"octaves": Tools.OCTAVE,
+    
+        			"minContrast": Tools.MINCON,
+        			"offset": Tools.OFFSET,
+        			"scalesUsedForPivotSearch": Tools.PIVOTS,
+                    
+        			"min pixel value": Tools.THRESH,
+        			"min cluster size": str(Tools. MINSI) + " px"
+        		},
+        		"assets": [{
+            		"type": "input",
                     "title": "Structural Geology",
                     "creator": "Uli Kelka",
-    				"description": "Intensity map",
-    				"name": out_name1,
-    				"format": str(os.path.splitext(out_name1)[1])
-    			},  
-                {
-    				"type": "output",
-                    "title": "Structural Geology",
-                    "creator": "Uli Kelka",
-    				"description": "shape file",
-    				"name": out_name2,
-    				"format": os.path.splitext(out_name2)[1]    #unnecessary as this is always a shp :-)
-    			}
-    		]
-    	},
-    	"author": "Uli Kelka",
-    	"organisation": "CSIRO ",
-    	"licence": {
-    		"name": "It is distributed under BSD 3-Clause License"
-    	},
-    	"run": {
-    		"date": "15 September 2022",
-    		"duration": 36000
-    	}
-    }
+            		"description": "orthomosaic",
+            		"name": in_name,
+            		"format": str(os.path.splitext(in_name)[1])
+        			},     
+        			{
+        				"type": "output",
+                        "title": "Structural Geology",
+                        "creator": "Uli Kelka",
+        				"description": "Intensity map",
+        				"name": out_name1,
+        				"format": str(os.path.splitext(out_name1)[1])
+        			},  
+                    {
+        				"type": "output",
+                        "title": "Structural Geology",
+                        "creator": "Uli Kelka",
+        				"description": "shape file",
+        				"name": out_name2,
+        				"format": os.path.splitext(out_name2)[1]    #unnecessary as this is always a shp :-)
+        			}
+        		]
+        	},
+        	"author": "Uli Kelka",
+        	"organisation": "CSIRO ",
+        	"licence": {
+        		"name": "It is distributed under BSD 3-Clause License"
+        	},
+        	"run": {
+        		"date": datetime_to_isoformat (date.today() )
+        	}
+        }
+        with open(name, "w") as outfile:
+            json.dump(m_data, outfile)
+    else:
+        print('No input file defined!')
+        sys.exit()
     return(m_data)
     
 def WriteCollection(Tools):
     collectionId = "80194"
-  
-    #Try to get REST credentials
-    filename = "src/metadata/login.json"
+    #REST credentials
     username = Tools.USER
-    password = Tools.PASSW
-    
-    '''
-    try:
-        with open(filename) as f:
-            user_details = json.load(f)
-            username = user_details.get("username")
-            password = user_details.get("password")
-    except:
-        print("Exception - login.json")
-        raise
-    '''
-    
+    password = Tools.PASSW    
     auth = requests.auth.HTTPBasicAuth( username, password )
     headers_object = {"Accept":"application/json"}
     
@@ -152,8 +161,6 @@ def WriteCollection(Tools):
           url = "https://daptst.csiro.au/dap/api/v2/collections/"+collectionId+"/files?path=/"+type
           writeFiles = True
        if writeFiles: 
-          #print(files)
-          #print(url)
           r = requests.post(url, auth=auth, files=files)
           if not r.ok:
              print("FILES: Something went wrong!")
@@ -170,14 +177,12 @@ def WriteCollection(Tools):
        type = asset.get("type")
        collectionFolder = "/"+type
        url = "https://daptst.csiro.au/dap/api/v2/collections/"+collectionId+"/file?path="+collectionFolder+"/"+os.path.split(filename)[1]
-       #print("Adding metadata to asset: "+filename:"+os.path.split(filename)[1]))
        print("Adding metadata to asset:"+collectionFolder+"/"+os.path.split(filename)[1])
        r = requests.get(url, auth=auth)
        if not r.ok:
            print("Something went wrong!")
     
        metadata = r.json()
-       #print(json.dumps(metadata, indent=2))
        fileId = metadata.get("id")
        if not fileId:
            print("ERROR: POST request to '{0}' ".format(url) \
@@ -188,8 +193,6 @@ def WriteCollection(Tools):
        params = metadata.get("parameters")
        #print(json.dumps(params, indent=2))
     
-       #metadata["parameters"] = [{"title": "test by chris" } ]
-       # params[].{name:Description, StringValue:}
        index=0
        # if no params (typically if not an image file), need to add at least title and creator fields
        if (len(params) == 0):
@@ -228,17 +231,11 @@ def WriteCollection(Tools):
          index = index + 1
     
        metadata["parameters"] = params
-       #print(json.dumps(metadata, indent=2))
-    
+       
        url = "https://daptst.csiro.au/dap/api/v2/collections/"+collectionId+"/files/{0}".format(fileId)
-       #print("PUT url '{0}'".format(url))
     
        save_request = requests.put(url,
            auth=auth,
            headers=headers_object,
            json=metadata)
      
-       #print("Response code: {0}".format(save_request.status_code))
-       #print(save_request.text)
-    
-    #print("...End")

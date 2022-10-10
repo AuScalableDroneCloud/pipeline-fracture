@@ -91,10 +91,17 @@ class Tools:
     MINSI = 1
     
     #names for metadata
-    USER = ''
-    PASSW = ''
+    DAP = False
+    JSON = False
+    TERN = False
+    USER = 'pet22a_wsi@DAPTst'
+    PASSW = '^JwtGk^xM79D#_6&QXPCtkzG6M5kwC'
     SHP = ''
     GEOTIF = ''
+    EXTEND = (0, 0)
+    PROJ = None
+    GEOT = None
+    J_NAME = 'sample'
         
     def Prepare4Processing(self):
         style = {'description_width': 'initial'}
@@ -536,6 +543,8 @@ class Tools:
             Tools.GEOTIF = 'test'
         if (str(T) == 'shp'):
             Tools.SHP = 'test'
+        if (str(T) == 'json'):
+            Tools.J_NAME = 'test'
         filename = w.Text(value='test', placeholder='filename', description='Filename:', disabled=False)
         display(filename)
         def on_change(change):
@@ -544,6 +553,8 @@ class Tools:
                     Tools.GEOTIF = change['new'] 
                 if (str(T) == 'shp'):
                     Tools.SHP = change['new'] 
+                if (str(T) == 'json'):
+                    Tools.J_NAME = change['new'] 
         filename.observe(on_change)
            
 
@@ -561,7 +572,7 @@ class Tools:
         print("Images will be written into ", os.getcwd())
         for i, img in enumerate(img_list):
             cur_dir = os.getcwd()
-            path = os.path.join(cur_dir, filename + "_" + str(i) + ".tiff")
+            path = os.path.join(cur_dir, filename + "_" + str(i) + ".tif")
             driver = gdal.GetDriverByName("GTiff")
             outdata = driver.Create(path, img.RasterXSize, img.RasterYSize, 1, img.GetRasterBand(1).DataType)
             outdata.SetGeoTransform(img.GetGeoTransform())
@@ -601,7 +612,40 @@ class Tools:
         file.observe(on_change)
         
 #CSIRO DAP---------------------------------------------------------------------
-    def GetCredential(self):
+
+
+    def MetaData(self):
+        types = ["JSON", "CSIRO DAP (test)", "TERN"]
+        checkboxes = [w.Checkbox(value=False, description=t) for t in types]
+                        
+        box  = w.VBox( [ checkboxes[0], checkboxes[1], checkboxes[2] ] )
+        output = w.HBox([box])
+        display(output)
+
+        def on_tick_0(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.JSON = change['new']
+                
+        def on_tick_1(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.DAP = change['new']
+        
+        def on_tick_2(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.TERN = change['new']
+                
+        checkboxes[0].observe(on_tick_0)
+        checkboxes[1].observe(on_tick_1)
+        checkboxes[2].observe(on_tick_2)
+        
+        '''
+        if (self.DAP == True):
+            print('Please give your credentials.')
+            self.GetCredentials(self)
+        '''
+
+
+    def GetCredentials(self):
         user  = w.Text(value='', placeholder='', description='Username:', disabled=False)
         passw = w.Text(value='', placeholder='', description='Password:', disabled=False)
         all_widgets = [user, passw]
@@ -618,6 +662,8 @@ class Tools:
                 
         all_widgets[0].observe(change_user)
         all_widgets[1].observe(change_passw)
+        
+
         
         
         

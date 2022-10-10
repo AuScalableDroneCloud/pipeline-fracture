@@ -88,12 +88,19 @@ def PrepareImages(Tools):
         dataset = None
         res = isinstance(img, str)
         if (res):
+            #Get the extend of the raster
             dataset = gdal.Open(img, gdal.GA_ReadOnly)
+            ulx, xres, xskew, uly, yskew, yres  = dataset.GetGeoTransform()
+            lrx = ulx + (dataset.RasterXSize * xres)
+            lry = uly + (dataset.RasterYSize * yres)
+            Tools.EXTEND = (lrx, lry)
         else:
             print('cannot resolve filename', img)
         if dataset:
             if dataset.GetProjection():
                 if dataset.GetGeoTransform():
+                    Tools.PROJ = dataset.GetProjection()
+                    Tools.GEOT = dataset.GetGeoTransform()
                     noData = dataset.GetRasterBand(1).GetNoDataValue()
                     print("processing geotagged images...")
                     print("with ", dataset.RasterCount, " bands")
@@ -600,6 +607,7 @@ def BuildSHP(img_list, filename, tolerance):
         path = os.path.join(cur_dir, str(filename) + "_" + str(i) + ".shp")
         WritePolyline2SHP(lines[0], lines[1], path, tolerance) 
         print("written ", path)
+        return(path)
 
 def WritePolyline2SHP(graph, dataset, outputFile, tolerance): 
     #first convert the graph edges into a list of numpy arrays lists
