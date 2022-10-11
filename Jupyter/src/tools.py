@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 """
 *********************************************************************
 *				DO NOT MODIFY THIS HEADER					        *
@@ -27,7 +26,6 @@ import matplotlib.pyplot as plt
 from coshrem.util.image import overlay
 from IPython.display import display
 sys.path.append('src')
-import json
 import gdal_retile
 
 class Tools: 
@@ -580,40 +578,45 @@ class Tools:
             outdata.GetRasterBand(1).WriteArray(img.GetRasterBand(1).ReadAsArray() )
             outdata.FlushCache() 
             print("written image ", filename)
-            #TODO: Needs to be able to work with lists, currently this will only pass the last name in case of a list
             Tools.GEOTIF = path
             outdata = None
        
 #WEBODM_part-------------------------------------------------------------------
     def GetAssets(self, project, task):
+        Tools.FILE = []
         assests = ['orthophoto.tif', 'dsm.tif']
-        pathlib.Path(task).mkdir(parents=True, exist_ok=True)
+        project = '622'
+        task = 'b4b2382f-1946-4593-99c7-a01615d9ebd4'
+    
         os.chdir(task)
+        pathlib.Path(task).mkdir(parents=True, exist_ok=True)
         for i in assests:
             asdc.download_asset(project, task, i)
             if "orthophoto" in i or "dsm" in i:
-                data = gdal.Open(i, gdal.GA_ReadOnly)  
-                Tools.ASSETS.append( (str(i), data) )     
+                Tools.ASSETS.append( str(i) )     
                 print('added', i, 'to downloaded assets.')  
-        Tools.DATA.append(Tools.ASSETS[0][1])
-
+        if (len(Tools.ASSETS) > 0):
+            Tools.FILE.append( Tools.ASSETS[0])
+        else:
+            print('ERROR: Could not retrive assets')
+            sys.exit()
+                
     def SelectAsset(self):     
         names = [] 
         for f in Tools.ASSETS:
-            names.append(f[0])     
+            names.append(f)            
         file = w.Dropdown(options=names,description='Assets:', value='orthophoto.tif', disabled=False,)
         display(file)  
         def on_change(change):
             if change['type'] == 'change' and change['name'] == 'value':
                 Tools.DATA = []
                 for d in Tools.ASSETS:
-                    if d[0] == change['new']:
-                        Tools.FILE.append(d[1])
+                    if d == change['new']:
+                        Tools.FILE = []
+                        Tools.FILE.append( d )
         file.observe(on_change)
         
 #CSIRO DAP---------------------------------------------------------------------
-
-
     def MetaData(self):
         types = ["JSON", "CSIRO DAP (test)", "TERN"]
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
@@ -643,7 +646,6 @@ class Tools:
             print('Please give your credentials.')
             self.GetCredentials(self)
         '''
-
 
     def GetCredentials(self):
         user  = w.Text(value='', placeholder='', description='Username:', disabled=False)

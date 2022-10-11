@@ -672,6 +672,7 @@ def WritePoints2SHP(graph, dataset, outputFile, tolerance):
     degrees = []
     for i in range(len(nodes)):
         degrees.append(graph.degree[i])
+        
     #get the GDAL driver for ESRI shapefile
     driverName = "ESRI Shapefile"
     drv = gdal.GetDriverByName( driverName )
@@ -687,6 +688,7 @@ def WritePoints2SHP(graph, dataset, outputFile, tolerance):
         if ds is None:
             print ("Creation of output file failed.\n")
             sys.exit( 1 )
+            
 # get layer and check if reference is given (write non-georeferenced shp if not defined)     
     lyr = ds.GetLayer(0)
     if lyr is None:
@@ -702,7 +704,8 @@ def WritePoints2SHP(graph, dataset, outputFile, tolerance):
             sys.exit( 1 )    
     lyr.CreateField(ogr.FieldDefn('id', ogr.OFTInteger))
     lyr.CreateField(ogr.FieldDefn('degree', ogr.OFTInteger))
-#loop though the ponts and create lines in the layer
+    
+#loop though the points and create lines in the layer
     for i, p in enumerate(points): 
         if degrees[i] > 0:
             feat = ogr.Feature( lyr.GetLayerDefn())

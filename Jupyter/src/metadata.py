@@ -1,28 +1,23 @@
 #
 # writes metadata to the DAP (daptst) as a draft to the exsiting collection id: 80194
 #
-
 import requests
 import sys, os
 import json
 from datetime import datetime, date
 
 #TODO: How do we get this to work with lists?
-#Add flag to write JSON
-
 
 def datetime_to_isoformat(obj):
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
-
-
 
 def CreateMetaData(Tools):
     if (Tools.JSON == True and Tools.DAP == False):
         print('writing JSON')
         CreateJSON(Tools)
     if (Tools.DAP == True):
-        print('writing JSON and publishing to CSIRo DAP (test).')
+        print('writing JSON and publishing to CSIRO DAP (test).')
         WriteCollection(Tools)
     if (Tools.TERN == True):
         print('publishing to TERN storage not implemented')
