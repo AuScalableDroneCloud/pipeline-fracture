@@ -12,7 +12,7 @@
 #     name: python3
 # ---
 
-# ![logo-2.png](attachment:logo-2.png)
+# ![asdc.png](asdc.png)
 #
 # ## <center>Structural Geology Use Case</center>
 #
@@ -149,23 +149,13 @@ md.WriteCollection(Tools)
 # Save assets to WebODM
 
 # +
-#Upload example
+#Upload assests to new task
 task_id = asdc.new_task("Processed orthophoto")
-if os.path.isfile(Tools.GEOTIF):
+if Tools.GEOTIF and os.path.isfile(Tools.GEOTIF):
     r = asdc.upload_asset(Tools.GEOTIF, dest="odm_orthophoto/odm_orthophoto.tif", task=task_id)
     print(r)
-else:
-    #Just upload the example to test this (converted to .tif)
-    from PIL import Image
-    image = Image.open("test/Ortho_3_061.png")
-    image.save("test/orthophoto.tif")
-    r = asdc.upload_asset("test/orthophoto.tif", dest="odm_orthophoto/", task=task_id)
-    r = asdc.upload_asset("test/orthophoto.tif", dest="odm_orthophoto/odm_orthophoto.tif", task=task_id)
-    print(r)
 
-if os.path.isfile(Tools.SHP):
+if Tools.SHP and os.path.isfile(Tools.SHP):
     r = asdc.upload_asset(Tools.SHP, dest=f"shapefiles/{Tools.SHP}", task=task_id)
     print(r)
-
-
 

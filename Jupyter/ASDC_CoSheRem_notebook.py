@@ -12,7 +12,7 @@
 #     name: python3
 # ---
 
-# ![logo-2.png](attachment:logo-2.png)
+# ![asdc.png](asdc.png)
 #
 # ## <center>Structural Geology Use Case</center>
 #
@@ -55,7 +55,7 @@ Tools.SelectEnhancement(Tools)
 ReadImage(Tools)
 Tools.ShowImage(Tools.DATA2)  
 
-Tools.WriteImage(Tools.DATA2, 'Sobel_test')
+Tools.WriteImage(Tools, Tools.DATA2, 'Sobel_test')
 
 Tools.TileImage(Tools)
 
@@ -146,21 +146,18 @@ Tools.SHP = BuildSHP(Tools.E_FEATURES, Tools.SHP, 100)
 # Save assets to WebODM
 
 # +
-#Upload example
+#Upload assests to new task
 task_name = asdc.task_dict[task_id]['name']
 task_id = asdc.new_task(f"{task_name} - Fracture Detection Output")
 
-#if os.path.isfile(Tools.FILENAME):
+#if Tools.FILENAME and os.path.isfile(Tools.FILENAME):
 #    r = asdc.upload_asset(Tools.FILENAME, dest="odm_orthophoto/odm_orthophoto.tif", task=task_id)
 #    print(r)
 
-if os.path.isfile(Tools.GEOTIF):
+if Tools.GEOTIF and os.path.isfile(Tools.GEOTIF):
     r = asdc.upload_asset(Tools.GEOTIF, dest="odm_orthophoto/odm_orthophoto.tif", task=task_id)
     print(r)
 
-if os.path.isfile(Tools.SHP):
+if Tools.SHP and os.path.isfile(Tools.SHP):
     r = asdc.upload_asset(Tools.SHP, dest=f"shapefiles/{Tools.SHP}", task=task_id)
     print(r)
-
-
-

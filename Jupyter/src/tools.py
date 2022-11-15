@@ -580,25 +580,25 @@ class Tools:
             print("written image ", filename)
             Tools.GEOTIF = path
             outdata = None
-       
+
 #WEBODM_part-------------------------------------------------------------------
     def GetAssets(self, project, task):
         Tools.FILE = []
         assests = ['orthophoto.tif', 'dsm.tif']
-        project = '622'
-        task = 'b4b2382f-1946-4593-99c7-a01615d9ebd4'
+        if not project: project = '622'
+        if not task: task = 'b4b2382f-1946-4593-99c7-a01615d9ebd4'
     
-        os.chdir(task)
         pathlib.Path(task).mkdir(parents=True, exist_ok=True)
+        os.chdir(task)
         for i in assests:
-            asdc.download_asset(project, task, i)
-            if "orthophoto" in i or "dsm" in i:
+            r = asdc.download_asset(i, project=project, task=task)
+            if r and "orthophoto" in i or "dsm" in i:
                 Tools.ASSETS.append( str(i) )     
                 print('added', i, 'to downloaded assets.')  
         if (len(Tools.ASSETS) > 0):
             Tools.FILE.append( Tools.ASSETS[0])
         else:
-            print('ERROR: Could not retrive assets')
+            print('ERROR: Could not retrieve assets')
             sys.exit()
                 
     def SelectAsset(self):     
@@ -615,7 +615,7 @@ class Tools:
                         Tools.FILE = []
                         Tools.FILE.append( d )
         file.observe(on_change)
-        
+
 #CSIRO DAP---------------------------------------------------------------------
     def MetaData(self):
         types = ["JSON", "CSIRO DAP (test)", "TERN"]
@@ -664,11 +664,11 @@ class Tools:
                 
         all_widgets[0].observe(change_user)
         all_widgets[1].observe(change_passw)
+
+
+
         
 
         
-        
-        
-        
-        
+
         
