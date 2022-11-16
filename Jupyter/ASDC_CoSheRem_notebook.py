@@ -28,10 +28,17 @@
 #
 # Author: Ulrich Kelka
 
+#Default settings so can just run the notebook after task selection....
+from ipywidgets import widgets
+tiling = widgets.RadioButtons(
+    options=[('Do not tile image', 0), ('Tile image', 1)],
+    description='Tiling:',
+)
+tiling
+
 import asdc
 await asdc.connect()
 asdc.task_select()
-from ipywidgets import widgets
 
 project_id, task_id = asdc.get_selection()
 
@@ -57,7 +64,7 @@ Tools.ShowImage(Tools.DATA2)
 
 Tools.WriteImage(Tools, Tools.DATA2, 'Sobel_test')
 
-Tools.TileImage(Tools)
+Tools.TileImage(Tools, tiling.value)
 
 # # Select System Parameters
 # Taken from 'The CoShREM Toolbox Parameter Guide' by Rafael Reisenhofer.\
@@ -105,9 +112,12 @@ Tools.MosaicTiles(Tools)
 
 Tools.ShowOverlay(Tools)
 
-Tools.SelectFilename(Tools)
+# +
+#Tools.SelectFilename(Tools, 'tif')
 
-Tools.WriteImage(Tools.FEATURES, Tools.FILENAME)
+# +
+#Tools.WriteImage(Tools.FEATURES, Tools.FILENAME)
+# -
 
 # # Clean feature ensemble
 #
@@ -148,16 +158,23 @@ Tools.SHP = BuildSHP(Tools.E_FEATURES, Tools.SHP, 100)
 # +
 #Upload assests to new task
 task_name = asdc.task_dict[task_id]['name']
-task_id = asdc.new_task(f"{task_name} - Fracture Detection Output")
-
-#if Tools.FILENAME and os.path.isfile(Tools.FILENAME):
-#    r = asdc.upload_asset(Tools.FILENAME, dest="odm_orthophoto/odm_orthophoto.tif", task=task_id)
-#    print(r)
+#New placeholder imported task, then add orthophoto afterwards
+new_task_id = asdc.import_task(f"{task_name} - Fracture Detection")
 
 if Tools.GEOTIF and os.path.isfile(Tools.GEOTIF):
-    r = asdc.upload_asset(Tools.GEOTIF, dest="odm_orthophoto/odm_orthophoto.tif", task=task_id)
-    print(r)
+    r = asdc.upload_asset(Tools.GEOTIF, dest="odm_orthophoto/odm_orthophoto.tif", task=new_task_id)
+    if not r.ok: print(r)
 
 if Tools.SHP and os.path.isfile(Tools.SHP):
-    r = asdc.upload_asset(Tools.SHP, dest=f"shapefiles/{Tools.SHP}", task=task_id)
-    print(r)
+    r = asdc.upload_asset(Tools.SHP, dest=f"shapefiles/{Tools.SHP}", task=new_task_id)
+    if not r.ok: print(r)
+# -
+
+baseurl = asdc.settings['api_audience']
+print(f"Task       https://{baseurl}/projects/{project_id}/tasks/{new_task_id}")
+print(f"Files      https://{baseurl}/projects/{project_id}/tasks/{new_task_id}/assets/files.json")
+print(f"Orthophoto https://{baseurl}/projects/{project_id}/tasks/{new_task_id}/download/orthophoto.tif")
+files = asdc.call_api(f"/projects/{project_id}/tasks/{new_task_id}/assets/files.json").json()
+files
+
+
