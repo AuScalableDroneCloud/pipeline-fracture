@@ -169,7 +169,7 @@ if Tools.GEOTIF and os.path.isfile(Tools.GEOTIF):
     if not r.ok: print(r)
 
 if Tools.SHP and os.path.isfile(Tools.SHP):
-    r = asdc.upload_asset(Tools.SHP, dest=f"shapefiles/{Tools.SHP}", task=new_task_id)
+    r = asdc.upload_asset(Tools.SHP, dest=f"shapefiles/{os.path.basename(Tools.SHP)}", task=new_task_id)
     if not r.ok: print(r)
 # -
 
