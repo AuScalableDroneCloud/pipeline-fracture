@@ -267,7 +267,7 @@ class Tools:
          show2 = w.VBox([tile, out2]) 
          display(show2)     
       
-    def TileImage(self):
+    def TileImage(self, default=None):
         if (len(self.DATA2) == 1):
             Tools.CheckTemp()
             btn = w.Button(description='Tile image')
@@ -287,6 +287,11 @@ class Tools:
     
             btn.on_click(Tile)
             bt2.on_click(NoTile)
+
+            if default == 0:
+                NoTile(self)
+            elif default == 1:
+                Tile(self)
             
             buttons = w.HBox([btn, bt2])
             show = w.VBox([buttons, out])

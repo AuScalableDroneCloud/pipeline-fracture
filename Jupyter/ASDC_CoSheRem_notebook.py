@@ -171,10 +171,8 @@ if Tools.SHP and os.path.isfile(Tools.SHP):
 # -
 
 baseurl = asdc.settings['api_audience']
-print(f"Task       https://{baseurl}/projects/{project_id}/tasks/{new_task_id}")
-print(f"Files      https://{baseurl}/projects/{project_id}/tasks/{new_task_id}/assets/files.json")
-print(f"Orthophoto https://{baseurl}/projects/{project_id}/tasks/{new_task_id}/download/orthophoto.tif")
+print(f"Task       {baseurl}/projects/{project_id}/tasks/{new_task_id}")
+print(f"Files      {baseurl}/projects/{project_id}/tasks/{new_task_id}/assets/files.json")
+print(f"Orthophoto {baseurl}/projects/{project_id}/tasks/{new_task_id}/download/orthophoto.tif")
 files = asdc.call_api(f"/projects/{project_id}/tasks/{new_task_id}/assets/files.json").json()
 files
-
-
