@@ -1,1 +1,2 @@
-PyCoShREM
+#PyCoShREM
+https://github.com/auscalabledronecloud/pycoshrem/archive/master.zip
