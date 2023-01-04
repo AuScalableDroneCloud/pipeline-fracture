@@ -21,7 +21,7 @@
 #
 # Using the Python port of the Matlab Toolbox Complex Shearlet-Based Ridge and Edge Measurement by Rafael Reisenhofer: https://github.com/rgcda/PyCoShREM
 #
-# This sosftware is distributed under the GNU General Public Licence version 3 (GPLv3) with CSIRO Disclaimer.
+# This software is distributed under the GNU General Public Licence version 3 (GPLv3) with CSIRO Disclaimer.
 # Please see license file for full restrictions.
 #
 # (c) CSIRO 2022 
