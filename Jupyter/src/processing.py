@@ -20,6 +20,7 @@ import cv2
 import time
 import numpy as np
 import itertools
+import skimage as sk
 
 from osgeo import gdal,osr, ogr, gdal_array
 from sknw import build_sknw
@@ -76,6 +77,22 @@ def CheckDetectionParams(offset):
             print("invalid entry in offset: ", off)
             new_offset.remove(off)
     return(new_offset)
+
+
+
+def Project2WGS84(pointX, pointY, pointZ, inputEPSG):
+    point = ogr.Geometry(ogr.wkbPoint)
+    point.AddPoint(pointX, pointY, pointZ)
+    outSpatialRef = osr.SpatialReference()
+    outSpatialRef.ImportFromEPSG(4326) #this is wgs84    
+    coordTransform = osr.CoordinateTransformation(inputEPSG, outSpatialRef)
+    point.Transform(coordTransform)
+    X = point.GetX()
+    Y = point.GetY()
+    Z = point.GetZ()
+    return(X, Y, Z)
+
+
 #==============================================================================
 def PrepareImages(Tools):
     Tools.RAW_IMG = []
@@ -88,17 +105,21 @@ def PrepareImages(Tools):
         dataset = None
         res = isinstance(img, str)
         if (res):
-            #Get the extend of the raster
             dataset = gdal.Open(img, gdal.GA_ReadOnly)
-            ulx, xres, xskew, uly, yskew, yres  = dataset.GetGeoTransform()
-            lrx = ulx + (dataset.RasterXSize * xres)
-            lry = uly + (dataset.RasterYSize * yres)
-            Tools.EXTEND = (lrx, lry)
+
         else:
             print('cannot resolve filename', img)
         if dataset:
             if dataset.GetProjection():
                 if dataset.GetGeoTransform():
+                    
+                    #Get the extend of the raster
+                    proj = osr.SpatialReference(wkt=dataset.GetProjection())
+                    ulx, xres, xskew, uly, yskew, yres  = dataset.GetGeoTransform()
+                    newX, newY, _ = Project2WGS84(uly, ulx, 0.0, proj)
+                    lrx = newX + (dataset.RasterXSize * xres)
+                    lry = newY + (dataset.RasterYSize * yres)   
+                    Tools.EXTEND = ((newX, newY), (lrx, lry) )
                     Tools.PROJ = dataset.GetProjection()
                     Tools.GEOT = dataset.GetGeoTransform()
                     noData = dataset.GetRasterBand(1).GetNoDataValue()
@@ -107,7 +128,13 @@ def PrepareImages(Tools):
                     bands = [dataset.GetRasterBand(k + 1) for k in range(dataset.RasterCount)]
                     DataType = dataset.GetRasterBand(1).DataType
                     driver = gdal.GetDriverByName('MEM')
-                    dst_ds = driver.CreateCopy('', dataset, strict=0)
+                    
+                    dst_ds = driver.CreateCopy('', dataset, strict=0)  
+                    for i, b in enumerate(bands):
+                        d = b.ReadAsArray()
+                        dst_ds.GetRasterBand(i+1).WriteArray(d.astype("uint8"))
+                    bands = [dst_ds.GetRasterBand(k + 1) for k in range(dst_ds.RasterCount)]
+                    
                     for i, b in enumerate(bands):        
                         stats = b.GetStatistics(True, True)
                         print("band ",i+1, ": min: ", stats[0], "max: ", stats[1])
@@ -254,7 +281,7 @@ def ReadImage(Tools):
             if ( Tools.HISTEQ ):
                 arr = np.uint8(gray)
                 gray = cv2.equalizeHist(arr)
-           
+
             if ( Tools.GAUSBL ):
                 gray = cv2.GaussianBlur(gray,(5,5),0)
            
@@ -276,7 +303,7 @@ def ReadImage(Tools):
             if ( Tools.SOBEL ):
                 x = cv2.Sobel(gray,cv2.CV_64F,1,0,ksize=5)
                 y = cv2.Sobel(gray,cv2.CV_64F,0,1,ksize=5)
-                gray = np.abs( (0.5*x) + (0.5*y) )
+                gray =  (0.5*x) + (0.5*y) 
                 
             if (Tools.INVERT):
                 gray = cv2.bitwise_not(gray)
@@ -284,8 +311,6 @@ def ReadImage(Tools):
             out.GetRasterBand(1).WriteArray( gray )
             ImgList.append(out)
         Tools.DATA2 = ImgList
-
-
 
 '''
 check consient size of images and retun dimension of smallest image
@@ -447,7 +472,7 @@ def DetectFeatures(Tools):
     negative        = Tools.NEGATI
     
     if (Tools.RIDGES):
-        print('detecting features with ', len(Tools.R_SYS), " systems.")
+        print('detecting features with ', len(Tools.R_SYS[0]), " systems.")
     t = time.time()
 
     # offset = CheckDetectionParams(offset)
@@ -481,8 +506,8 @@ def DetectFeatures(Tools):
              fp = zip(func_params)
              if (len(all_detec_combs) < os.cpu_count()):
                  mw = len(all_detec_combs)   
-           
-                 
+                
+             
              with ProcessPoolExecutor(max_workers = mw) as executor:
                  for r, o in executor.map(Detect, fp): 
                      thinned_f = mask(r, thin_mask(r))
@@ -503,13 +528,14 @@ def DetectFeatures(Tools):
             if (len(all_detec_combs) < os.cpu_count()):
                 mw = len(all_detec_combs)   
                 
-             
+            mw = 5
             with ProcessPoolExecutor(max_workers = mw) as executor:
                 for r, o in executor.map(Detect, fp): 
                     thinned_f = mask(r, thin_mask(r))
+                    #thinned_f = CleanIntensityMap(thinned_f)
                     detected = np.add(detected, thinned_f)  
          norm = np.zeros(img[0].shape, np.double)
-         normalized = cv2.normalize(detected, norm, 1.0, 0.0, cv2.NORM_MINMAX, dtype=cv2.CV_64F)          
+         normalized = cv2.normalize(detected, norm, 1.0, 0.0, cv2.NORM_MINMAX, dtype=cv2.CV_32F)          
          data.GetRasterBand(1).WriteArray(normalized)
          Tools.FEATURES.append(data)
          data = None
@@ -520,7 +546,19 @@ def DetectFeatures(Tools):
 #Enhancing edge/ridge ensembles------------------------------------------------
 '''
 
+
 '''
+def CleanIntensityMap(img):
+    # define the kernel
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
+    # opening the image
+    opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=3)
+    img =  img - opening 
+    p1, p99 = np.percentile(img, (1, 99))
+    J = sk.exposure.rescale_intensity(img, in_range=(p1, p99))
+    cleaned = sk.morphology.remove_small_objects(J, min_size=10, connectivity=2)     
+    return(cleaned)
+
 def SigmoidNonlinearity(image):
     ridges_norm_sig = np.zeros(image.shape, np.double)
     w,h = image.shape
@@ -550,7 +588,6 @@ def EnhanceEnsemble(Tools):
 def Threshholding(image, thresh, ksize):   
     print("Imgae thresholding")
     print(" Threshhold: ", thresh)
-    print(" Kernel size: ", ksize)
     w,h = image.shape
     #e_kernel = np.ones((5,5),np.uint8)#kernel for erosion
     
@@ -719,3 +756,96 @@ def WritePoints2SHP(graph, dataset, outputFile, tolerance):
             lyr.CreateFeature(feat) 
             feat.Destroy()
     ds = None
+    
+def DynamicRangeCompression(img_list, c = 40):
+    DRC = []
+    
+    def _dr1(img1):
+        img1[img1 == 255] = 254
+        img1=np.log(img1+ 1)
+        return img1
+
+    def _dr(frame, c):
+        return (c * frame).astype(np.uint8)
+
+    def chipka(bdr, gdr, rdr, img):
+        q = []
+        m, n, _ = img.shape
+        for i, j, k in zip(bdr, gdr, rdr):
+            q.append(list(zip(i, j, k)))
+        return np.array(q).astype(np.uint8)
+     
+    for img in img_list:
+        b, g, r = img[:, :, 0], img[:, :, 1], img[:, :, 2]
+        bdr1, gdr1, rdr1 = map(lambda x: _dr1(x), (b, g, r))
+ 
+        bdr, gdr, rdr = map(lambda x: _dr(x, c), (bdr1, gdr1, rdr1))
+        res = chipka(bdr, gdr, rdr, img)
+        DRC.append(res)
+    return(DRC)
+
+#------------------------------------------------------------------------------
+'''
+processing.runalg('grass:r.mapcalculator',
+                  {"amap": gPb_rlayer,
+                   "formula": "if(A>0, 1, null())",
+                   "GRASS_REGION_PARAMETER": "%f,%f,%f,%f" % (xmin, xmax, ymin, ymax),
+                   "GRASS_REGION_CELLSIZE_PARAMETER": 1,
+                   "outfile": mapcalc})
+
+
+
+processing.runalg('grass7:r.thin',
+                  {"input": mapcalc,
+                   "GRASS_REGION_PARAMETER": "%f,%f,%f,%f" % (xmin, xmax, ymin, ymax),
+                   "output": thinned})
+
+processing.runalg('grass7:r.to.vect',
+                  {"input": thinned,
+                   "type": 0,
+                   "GRASS_OUTPUT_TYPE_PARAMETER": 2,
+                   "GRASS_REGION_PARAMETER": "%f,%f,%f,%f" % (xmin, xmax, ymin, ymax),
+                   "output": centerlines})
+
+'''
+
+
+def HillShade(img):  
+    from matplotlib.colors import LightSource
+    import matplotlib.pyplot as plt
+    z = img
+    dx, dy = dem['dx'], dem['dy']
+    dy = 111200 * dy
+    dx = 111200 * dx * np.cos(np.radians(dem['ymin']))
+    
+    # Shade from the northwest, with the sun 45 degrees from horizontal
+    ls = LightSource(azdeg=315, altdeg=45)
+    cmap = plt.cm.gist_earth
+    
+    fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(8, 9))
+    plt.setp(axs.flat, xticks=[], yticks=[])
+    
+    # Vary vertical exaggeration and blend mode and plot all combinations
+    for col, ve in zip(axs.T, [0.1, 1, 10]):
+        # Show the hillshade intensity image in the first row
+        col[0].imshow(ls.hillshade(z, vert_exag=ve, dx=dx, dy=dy), cmap='gray')
+    
+        # Place hillshaded plots with different blend modes in the rest of the rows
+        for ax, mode in zip(col[1:], ['hsv', 'overlay', 'soft']):
+            rgb = ls.shade(z, cmap=cmap, blend_mode=mode,
+                           vert_exag=ve, dx=dx, dy=dy)
+            ax.imshow(rgb)
+    
+    
+    def PolylineFitting(img_list, filename, tolerance):
+        import numpy.polynomial.polynomial as poly
+        for img in img_list:
+            data = img.GetRasterBand(1).ReadAsArray()
+            
+            nb_components, output, stats, centroids  = cv2.connectedComponentsWithStats(data.astype("uint8"), 4)
+    
+            for i in nb_components:
+                
+                print(i)
+                #coefs = poly.polyfit(x, y, 4)
+                #ffit = poly.polyval(x_new, coefs)

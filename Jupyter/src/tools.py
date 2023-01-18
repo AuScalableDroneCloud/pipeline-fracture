@@ -17,7 +17,7 @@
 
 import os
 import sys
-import asdc
+#import asdc
 import pathlib
 import numpy as np
 from osgeo import gdal
@@ -96,7 +96,7 @@ class Tools:
     PASSW = '^JwtGk^xM79D#_6&QXPCtkzG6M5kwC'
     SHP = ''
     GEOTIF = ''
-    EXTEND = (0, 0)
+    EXTEND = None
     PROJ = None
     GEOT = None
     J_NAME = 'sample'
@@ -267,7 +267,7 @@ class Tools:
          show2 = w.VBox([tile, out2]) 
          display(show2)     
       
-    def TileImage(self, default=None):
+    def TileImage(self):
         if (len(self.DATA2) == 1):
             Tools.CheckTemp()
             btn = w.Button(description='Tile image')
@@ -287,11 +287,6 @@ class Tools:
     
             btn.on_click(Tile)
             bt2.on_click(NoTile)
-
-            if default == 0:
-                NoTile(self)
-            elif default == 1:
-                Tile(self)
             
             buttons = w.HBox([btn, bt2])
             show = w.VBox([buttons, out])
@@ -585,25 +580,25 @@ class Tools:
             print("written image ", filename)
             Tools.GEOTIF = path
             outdata = None
-
+       
 #WEBODM_part-------------------------------------------------------------------
     def GetAssets(self, project, task):
         Tools.FILE = []
         assests = ['orthophoto.tif', 'dsm.tif']
-        if not project: project = '622'
-        if not task: task = 'b4b2382f-1946-4593-99c7-a01615d9ebd4'
+        project = '622'
+        task = 'b4b2382f-1946-4593-99c7-a01615d9ebd4'
     
-        pathlib.Path(task).mkdir(parents=True, exist_ok=True)
         os.chdir(task)
+        pathlib.Path(task).mkdir(parents=True, exist_ok=True)
         for i in assests:
-            r = asdc.download_asset(i, project=project, task=task)
-            if r and "orthophoto" in i or "dsm" in i:
+            asdc.download_asset(project, task, i)
+            if "orthophoto" in i or "dsm" in i:
                 Tools.ASSETS.append( str(i) )     
                 print('added', i, 'to downloaded assets.')  
         if (len(Tools.ASSETS) > 0):
             Tools.FILE.append( Tools.ASSETS[0])
         else:
-            print('ERROR: Could not retrieve assets')
+            print('ERROR: Could not retrive assets')
             sys.exit()
                 
     def SelectAsset(self):     
@@ -620,7 +615,7 @@ class Tools:
                         Tools.FILE = []
                         Tools.FILE.append( d )
         file.observe(on_change)
-
+        
 #CSIRO DAP---------------------------------------------------------------------
     def MetaData(self):
         types = ["JSON", "CSIRO DAP (test)", "TERN"]
@@ -669,11 +664,11 @@ class Tools:
                 
         all_widgets[0].observe(change_user)
         all_widgets[1].observe(change_passw)
-
-
-
         
 
         
-
+        
+        
+        
+        
         

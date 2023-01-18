@@ -35,6 +35,10 @@ def CreateJSON(Tools):
         	"notebook": {
         		"file": "CoSh_ensemble_webodm.ipynb",
         		"version": 1.0,
+                "Bounding box":{
+                    "LL": 4,
+                    "UR": 5,
+                },
         		"parameters": {
                     "Projection ": Tools.PROJ,
                     "Geotransform ": Tools.GEOT,
