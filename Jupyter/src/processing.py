@@ -21,6 +21,8 @@ import time
 import numpy as np
 import itertools
 import skimage as sk
+from PIL import Image, ExifTags
+from PIL.ExifTags import TAGS
 
 from osgeo import gdal,osr, ogr, gdal_array
 from sknw import build_sknw
@@ -80,6 +82,19 @@ def CheckDetectionParams(offset):
 
 
 
+def ReadMetaData(name):
+    lis = []
+    img = Image.open(name)
+    exifdata = img.getexif()
+    for tag_id in exifdata:
+        tag = TAGS.get(tag_id, tag_id)
+        data = exifdata.get(tag_id)
+        if isinstance(data, bytes):
+            data = data.decode().strip('\x00')   
+        lis.append( (f'{tag}', f'{data}') )
+    return(lis)
+
+
 def Project2WGS84(pointX, pointY, pointZ, inputEPSG):
     point = ogr.Geometry(ogr.wkbPoint)
     point.AddPoint(pointX, pointY, pointZ)
@@ -106,13 +121,12 @@ def PrepareImages(Tools):
         res = isinstance(img, str)
         if (res):
             dataset = gdal.Open(img, gdal.GA_ReadOnly)
-
+            Tools.IMGMETA = ReadMetaData(os.path.abspath(img))
         else:
             print('cannot resolve filename', img)
         if dataset:
             if dataset.GetProjection():
                 if dataset.GetGeoTransform():
-                    
                     #Get the extend of the raster
                     proj = osr.SpatialReference(wkt=dataset.GetProjection())
                     ulx, xres, xskew, uly, yskew, yres  = dataset.GetGeoTransform()

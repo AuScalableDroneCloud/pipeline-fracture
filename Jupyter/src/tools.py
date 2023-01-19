@@ -100,6 +100,7 @@ class Tools:
     PROJ = None
     GEOT = None
     J_NAME = 'sample'
+    IMGMETA = []
         
     def Prepare4Processing(self):
         style = {'description_width': 'initial'}

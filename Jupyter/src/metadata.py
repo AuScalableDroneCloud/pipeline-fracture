@@ -35,14 +35,13 @@ def CreateJSON(Tools):
         	"notebook": {
         		"file": "CoSh_ensemble_webodm.ipynb",
         		"version": 1.0,
-                "Bounding box":{
-                    "LL": 4,
-                    "UR": 5,
-                },
-        		"parameters": {
+                "Georeference info":[{
                     "Projection ": Tools.PROJ,
                     "Geotransform ": Tools.GEOT,
-                    "Size ": Tools.EXTEND,
+                    "Bounding Coodinates": Tools.EXTEND,
+                    "Image metadata": Tools.IMGMETA,
+                    }],
+        		"parameters": [{
                     "edges": Tools.EDGES, 
                     "ridges": Tools.RIDGES,
                     " positive": Tools.POSITV,
@@ -60,11 +59,11 @@ def CreateJSON(Tools):
                     
         			"min pixel value": Tools.THRESH,
         			"min cluster size": str(Tools. MINSI) + " px"
-        		},
+        		}],
         		"assets": [{
             		"type": "input",
                     "title": "Structural Geology",
-                    "creator": "Uli Kelka",
+                    "creator": os.getlogin(),
             		"description": "orthomosaic",
             		"name": in_name,
             		"format": str(os.path.splitext(in_name)[1])
@@ -80,7 +79,7 @@ def CreateJSON(Tools):
                     {
         				"type": "output",
                         "title": "Structural Geology",
-                        "creator": "Uli Kelka",
+                        "creator": os.getlogin(),
         				"description": "shape file",
         				"name": out_name2,
         				"format": os.path.splitext(out_name2)[1]    #unnecessary as this is always a shp :-)
@@ -96,8 +95,12 @@ def CreateJSON(Tools):
         		"date": datetime_to_isoformat (date.today() )
         	}
         }
+        
+
         with open(name, "w") as outfile:
             json.dump(m_data, outfile)
+            
+        
     else:
         print('No input file defined!')
         sys.exit()
