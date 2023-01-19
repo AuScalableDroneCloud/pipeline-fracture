@@ -17,7 +17,6 @@
 
 import os
 import sys
-#import asdc
 import pathlib
 import numpy as np
 from osgeo import gdal
@@ -267,7 +266,7 @@ class Tools:
          show2 = w.VBox([tile, out2]) 
          display(show2)     
       
-    def TileImage(self):
+    def TileImage(self, default=None):
         if (len(self.DATA2) == 1):
             Tools.CheckTemp()
             btn = w.Button(description='Tile image')
@@ -287,6 +286,11 @@ class Tools:
     
             btn.on_click(Tile)
             bt2.on_click(NoTile)
+
+            if default == 0:
+                NoTile(self)
+            elif default == 1:
+                Tile(self)
             
             buttons = w.HBox([btn, bt2])
             show = w.VBox([buttons, out])
@@ -585,20 +589,21 @@ class Tools:
     def GetAssets(self, project, task):
         Tools.FILE = []
         assests = ['orthophoto.tif', 'dsm.tif']
-        project = '622'
-        task = 'b4b2382f-1946-4593-99c7-a01615d9ebd4'
+        if not project: project = '622'
+        if not task: task = 'b4b2382f-1946-4593-99c7-a01615d9ebd4'
     
-        os.chdir(task)
         pathlib.Path(task).mkdir(parents=True, exist_ok=True)
+        os.chdir(task)
+        import asdc
         for i in assests:
-            asdc.download_asset(project, task, i)
-            if "orthophoto" in i or "dsm" in i:
+            r = asdc.download_asset(i, project=project, task=task)
+            if r and "orthophoto" in i or "dsm" in i:
                 Tools.ASSETS.append( str(i) )     
                 print('added', i, 'to downloaded assets.')  
         if (len(Tools.ASSETS) > 0):
             Tools.FILE.append( Tools.ASSETS[0])
         else:
-            print('ERROR: Could not retrive assets')
+            print('ERROR: Could not retrieve assets')
             sys.exit()
                 
     def SelectAsset(self):     
