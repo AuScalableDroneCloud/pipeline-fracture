@@ -113,15 +113,21 @@ def Project2WGS84(pointX, pointY, pointZ, inputEPSG):
     return(X, Y, Z)
 
 
-def remap(array):
-    if array.min() >= 0 and array.max() <=1:
+def remap(array, noData):
+    MIN = 0
+    if noData:
+        m = np.ma.masked_array(array, mask=(array==noData))
+        MIN = m.min()
+    else:
+        MIN = array.min()
+    if MIN >= 0 and array.max() <=1:
         array = array * 255
-    if array.min() < 0 or array.max() > 255:
-        oldmin = array.min()
-        oldrange = array.max() - array.min()
+    if MIN < 0 or array.max() > 255:
+        oldrange = array.max() - MIN
         if oldrange != 0:
+            print('remapping')
             for i, d in enumerate(array):
-                array[i] = (((d - oldmin) * 255) / oldrange) 
+                array[i] = (((d - MIN) * 255) / oldrange) 
         else:
             array.fill(0)
     return(array.astype(np.uint8))
