@@ -21,7 +21,7 @@ import time
 import numpy as np
 import itertools
 import skimage as sk
-from PIL import Image, ExifTags
+from PIL import Image
 from PIL.ExifTags import TAGS
 
 from osgeo import gdal,osr, ogr, gdal_array
@@ -84,14 +84,19 @@ def CheckDetectionParams(offset):
 
 def ReadMetaData(name):
     lis = []
-    img = Image.open(name)
-    exifdata = img.getexif()
-    for tag_id in exifdata:
-        tag = TAGS.get(tag_id, tag_id)
-        data = exifdata.get(tag_id)
-        if isinstance(data, bytes):
-            data = data.decode().strip('\x00')   
-        lis.append( (f'{tag}', f'{data}') )
+    img = None
+    try:
+        img = Image.open(name)
+    except:
+        print('cannot retrieve image metadata')
+    if img:
+        exifdata = img.getexif()
+        for tag_id in exifdata:
+            tag = TAGS.get(tag_id, tag_id)
+            data = exifdata.get(tag_id)
+            if isinstance(data, bytes):
+                data = data.decode().strip('\x00')   
+            lis.append( (f'{tag}', f'{data}') )
     return(lis)
 
 
@@ -108,6 +113,21 @@ def Project2WGS84(pointX, pointY, pointZ, inputEPSG):
     return(X, Y, Z)
 
 
+def remap(array):
+    if array.min() >= 0 and array.max() <=1:
+        array = array * 255
+    if array.min() < 0 or array.max() > 255:
+        oldmin = array.min()
+        oldrange = array.max() - array.min()
+        if oldrange != 0:
+            for i, d in enumerate(array):
+                array[i] = (((d - oldmin) * 255) / oldrange) 
+        else:
+            array.fill(0)
+    return(array.astype(np.uint8))
+    
+    
+
 #==============================================================================
 def PrepareImages(Tools):
     Tools.RAW_IMG = []
@@ -116,158 +136,165 @@ def PrepareImages(Tools):
         ImgList = []
         hist_list = []
         proc_hist_list =[]
-    for i, img in enumerate(Tools.FILE):
-        dataset = None
-        res = isinstance(img, str)
-        if (res):
-            dataset = gdal.Open(img, gdal.GA_ReadOnly)
-            Tools.IMGMETA = ReadMetaData(os.path.abspath(img))
-        else:
-            print('cannot resolve filename', img)
-        if dataset:
-            if dataset.GetProjection():
-                if dataset.GetGeoTransform():
-                    #Get the extend of the raster
-                    proj = osr.SpatialReference(wkt=dataset.GetProjection())
-                    ulx, xres, xskew, uly, yskew, yres  = dataset.GetGeoTransform()
-                    newX, newY, _ = Project2WGS84(uly, ulx, 0.0, proj)
-                    lrx = newX + (dataset.RasterXSize * xres)
-                    lry = newY + (dataset.RasterYSize * yres)   
-                    Tools.EXTEND = ((newX, newY), (lrx, lry) )
-                    Tools.PROJ = dataset.GetProjection()
-                    Tools.GEOT = dataset.GetGeoTransform()
-                    noData = dataset.GetRasterBand(1).GetNoDataValue()
-                    print("processing geotagged images...")
-                    print("with ", dataset.RasterCount, " bands")
-                    bands = [dataset.GetRasterBand(k + 1) for k in range(dataset.RasterCount)]
-                    DataType = dataset.GetRasterBand(1).DataType
-                    driver = gdal.GetDriverByName('MEM')
-                    
-                    dst_ds = driver.CreateCopy('', dataset, strict=0)  
-                    for i, b in enumerate(bands):
-                        d = b.ReadAsArray()
-                        dst_ds.GetRasterBand(i+1).WriteArray(d.astype("uint8"))
-                    bands = [dst_ds.GetRasterBand(k + 1) for k in range(dst_ds.RasterCount)]
-                    
-                    for i, b in enumerate(bands):        
-                        stats = b.GetStatistics(True, True)
-                        print("band ",i+1, ": min: ", stats[0], "max: ", stats[1])
-                        if (int(stats[0]) != 0 and int(stats[1]) !=0):
-                                hist = cv2.calcHist([b.ReadAsArray()],[0],None, [int(stats[1]) - int(stats[0]) +1], [stats[0], stats[1]])
-                                hist_list.append(hist)
-                    Tools.RAW_IMG.append(dst_ds)    #keep intial raster data
-                dataset = None
+        for i, img in enumerate(Tools.FILE):
+            dataset = None
+            res = isinstance(img, str)
+            if (res):
+                dataset = gdal.Open(img, gdal.GA_ReadOnly)
+                Tools.IMGMETA = ReadMetaData(os.path.abspath(img))
             else:
-                noData = None
-                print("processing non-geotagged images...")
-                rgb = cv2.imread(img, cv2.IMREAD_UNCHANGED) 
-                print("with ", rgb.ndim, " channels")
-                
-                s = rgb.shape
-                if s[2]:
-                    b = s[2]
+                print('cannot resolve filename', img)
+            if dataset:
+                if dataset.GetProjection():
+                    if dataset.GetGeoTransform():
+                        #Get the extend of the raster
+                        proj = osr.SpatialReference(wkt=dataset.GetProjection())
+                        ulx, xres, xskew, uly, yskew, yres  = dataset.GetGeoTransform()
+                        newX, newY, _ = Project2WGS84(uly, ulx, 0.0, proj)
+                        lrx = newX + (dataset.RasterXSize * xres)
+                        lry = newY + (dataset.RasterYSize * yres)   
+                        Tools.EXTEND = ((newX, newY), (lrx, lry) )
+                        Tools.PROJ = dataset.GetProjection()
+                        Tools.GEOT = dataset.GetGeoTransform()
+                        noData = dataset.GetRasterBand(1).GetNoDataValue()
+                        print("processing geotagged images...")
+                        print("with ", dataset.RasterCount, " channel(s)")
+                        bands = [dataset.GetRasterBand(k + 1) for k in range(dataset.RasterCount)]
+  
+                        driver = gdal.GetDriverByName('MEM')
+                        dst_ds = driver.Create( '', dataset.RasterXSize, dataset.RasterYSize, dataset.RasterCount, gdal.GDT_Byte  )
+                        dst_ds.SetProjection(dataset.GetProjectionRef())  
+                        dst_ds.SetGeoTransform( dataset.GetGeoTransform() )
+
+                        for i, b in enumerate(bands):
+                            d = remap( b.ReadAsArray() )
+                            dst_ds.GetRasterBand(i+1).WriteArray(d)
+                        bands = [dst_ds.GetRasterBand(k + 1) for k in range(dst_ds.RasterCount)]
+                        
+                        for i, b in enumerate(bands):  
+                            stats = b.GetStatistics(True, True)
+                            print("band ",i+1, ": min: ", stats[0], "max: ", stats[1])
+                            if (int(stats[0]) != 0 and int(stats[1]) !=0):
+                                if(stats[0] != stats[1]):
+                                    hist = cv2.calcHist([b.ReadAsArray()],[0],None, [int(stats[1]) - int(stats[0]) +1], [stats[0], stats[1]])
+                                    hist_list.append(hist)
+                        Tools.RAW_IMG.append(dst_ds)    #keep intial raster data
+                    dataset = None
                 else:
-                    b = 1
-                GeoT = np.zeros(6)
-                GeoT[0] = 0
-                GeoT[1] = 1
-                GeoT[2] = 0
-                GeoT[3] = 0
-                GeoT[4] = 0
-                GeoT[5] = -1
-                GeoT = tuple(GeoT)
+                    noData = None
+                    print("processing non-geotagged images...")
+                    rgb = cv2.imread(img, cv2.IMREAD_UNCHANGED) 
+                    
+                    s = rgb.shape
+                    if len(s) == 2:
+                        b = 1
+                    if len(s) > 2:
+                        b = s[2]
+                    
+                    print("with ", b, " channels")
+                    
+                    GeoT = np.zeros(6)
+                    GeoT[0] = 0
+                    GeoT[1] = 1
+                    GeoT[2] = 0
+                    GeoT[3] = 0
+                    GeoT[4] = 0
+                    GeoT[5] = -1
+                    GeoT = tuple(GeoT)
+                    
+                    drv = gdal.GetDriverByName( 'MEM' )
+                    DataType = gdal_array.NumericTypeCodeToGDALTypeCode(rgb.dtype)
+                    dst_ds = drv.Create( '', s[1], s[0], b, DataType  )
+                    dst_ds.SetProjection( '' )  
+                    dst_ds.SetGeoTransform( GeoT )
+                    
+                    sp = cv2.split(rgb)
+                    for i, b in enumerate(sp):   
+                        m = b.min(axis=(0, 1))
+                        M = b.max(axis=(0,1))
+                        print("Channel: ", i+1, ": min: ", m, "max: ", M)
+                        hist = cv2.calcHist([b],[0], None, [int((M-m)+1)], [m, M])
+                        hist_list.append(hist)
+                        dst_ds.GetRasterBand(i+1).WriteArray(b)
+                    Tools.RAW_IMG.append(dst_ds)
+                    dataset = None
+                    
+            #start the processing   
+            print('preparing image')  
+            if (dst_ds):      
+                bands = dst_ds.RasterCount        
+                if (Tools.RESIZE):
+                    print('resizing')
+                    #TODO: double check this!!!!!
+                    width = int(dst_ds.RasterXSize * Tools.PERCE / 100)
+                    height = int(dst_ds.RasterYSize * Tools.PERCE / 100)
+                    drv = gdal.GetDriverByName( 'MEM' )
+                    reproj = drv.Create( '', width, height, dst_ds.RasterCount, gdal.GDT_Byte )
+                    reproj.SetProjection(dst_ds.GetProjectionRef())  
+                    geoT = list( dst_ds.GetGeoTransform() )
+                    geoT[1] = geoT[1] / (Tools.PERCE / 100)
+                    geoT[5] = geoT[5] / (Tools.PERCE / 100)
+                    geoT = tuple ( geoT )
+                    reproj.SetGeoTransform( geoT )
+                    gdal.ReprojectImage( dst_ds, reproj)
+                    dst_ds = reproj
+                    reproj = None
+                rgb = dst_ds.ReadAsArray().astype("uint8")
                 
-                drv = gdal.GetDriverByName( 'MEM' )
-                DataType = gdal_array.NumericTypeCodeToGDALTypeCode(rgb.dtype)
-                dst_ds = drv.Create( '', s[1], s[0], b, DataType  )
-                dst_ds.SetProjection( '' )  
-                dst_ds.SetGeoTransform( GeoT )
-                
-                sp = cv2.split(rgb)
-                for i, b in enumerate(sp):   
-                    m = b.min(axis=(0, 1))
-                    M = b.max(axis=(0,1))
-                    print("Channel: ", i+1, ": min: ", m, "max: ", M)
-                    hist = cv2.calcHist([b],[0], None, [int((M-m)+1)], [m, M])
-                    hist_list.append(hist)
-                    dst_ds.GetRasterBand(i+1).WriteArray(b)
-                Tools.RAW_IMG.append(dst_ds)
-                dataset = None
-                
-        #start the processing   
-        print('preparing image')  
-        if (dst_ds):      
-            bands = dst_ds.RasterCount                 
-            if (Tools.RESIZE):
-                #TODO: double check this!!!!!
-                width = int(dst_ds.RasterXSize * Tools.PERCE / 100)
-                height = int(dst_ds.RasterYSize * Tools.PERCE / 100)
-                drv = gdal.GetDriverByName( 'MEM' )
-                reproj = drv.Create( '', width, height, dst_ds.RasterCount, DataType  )
-                reproj.SetProjection(dst_ds.GetProjectionRef())  
-                geoT = list( dst_ds.GetGeoTransform() )
-                geoT[1] = geoT[1] / (Tools.PERCE / 100)
-                geoT[5] = geoT[5] / (Tools.PERCE / 100)
-                geoT = tuple ( geoT )
-                reproj.SetGeoTransform( geoT )
-                gdal.ReprojectImage( dst_ds, reproj)
-                dst_ds = reproj
-                reproj = None
-    
-            rgb = dst_ds.ReadAsArray()
-            if (rgb.ndim) == 3:
-                rgb = np.swapaxes(rgb,0,2)
-                rgb = np.swapaxes(rgb,0,1)    
-    
-            if (bands > 2):
-                if (Tools. DETAIL): 
-                    rgb = cv2.detailEnhance(rgb, sigma_s = Tools.SIG_S, sigma_r = Tools.SIG_R)
+                if (rgb.ndim) == 3:
+                    rgb = np.swapaxes(rgb,0,2)
+                    rgb = np.swapaxes(rgb,0,1)    
         
-            if (Tools.GAMMA):
-                invGamma = 1.0 / Tools.GAM_C
-                table = np.array([((i / 255.0) ** invGamma) * 255
-                                  for i in np.arange(0, 256)]).astype("uint8")
-                rgb = cv2.LUT(rgb.astype("uint8"), table)
-                rgb = np.float32(rgb)
-                
-            if (bands > 2): 
-                if (Tools.WHITE):      
-                    if (dst_ds.RasterCount == 4):
-                        print('converting 4 channel to 3 channel image for white balanceing')
-                        rgb = rgb[:, :, :3]
-                    wb = cv2.xphoto.createGrayworldWB()
-                    wb.setSaturationThreshold( Tools.W_THR ) 
-                    rgb  = wb.balanceWhite( rgb.astype("uint8") )
-    
-            #create single bands raster 
-            drv = gdal.GetDriverByName( 'MEM' )
-            data = drv.Create( '', dst_ds.RasterXSize, dst_ds.RasterYSize, 1,  DataType  )
-            data.SetProjection( dst_ds.GetProjectionRef() )  
-            data.SetGeoTransform( dst_ds.GetGeoTransform() )
-            if (noData):
-                data.GetRasterBand(1).SetNoDataValue(noData)
+                if (bands > 2):
+                    if (Tools. DETAIL): 
+                        rgb = cv2.detailEnhance(rgb, sigma_s = Tools.SIG_S, sigma_r = Tools.SIG_R)
             
-            if (bands == 1):
-                data.GetRasterBand(1).WriteArray( rgb )
-                                    
-            if (dst_ds.RasterCount == 3):
-                gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
-                data.GetRasterBand(1).WriteArray( gray )
+                if (Tools.GAMMA):
+                    invGamma = 1.0 / Tools.GAM_C
+                    table = np.array([((i / 255.0) ** invGamma) * 255
+                                      for i in np.arange(0, 256)]).astype("uint8")
+                    rgb = cv2.LUT(rgb, table)
+                   
+                if (bands > 2): 
+                    if (Tools.WHITE):      
+                        if (dst_ds.RasterCount == 4):
+                            print('converting 4 channel to 3 channel image for white balanceing')
+                            rgb = rgb[:, :, :3]
+                        wb = cv2.xphoto.createGrayworldWB()
+                        wb.setSaturationThreshold( Tools.W_THR ) 
+                        rgb  = wb.balanceWhite( rgb )
+        
+                #create single bands raster 
+                drv = gdal.GetDriverByName( 'MEM' )
+                data = drv.Create( '', dst_ds.RasterXSize, dst_ds.RasterYSize, 1,  gdal.GDT_Byte  )
+                data.SetProjection( dst_ds.GetProjectionRef() )  
+                data.SetGeoTransform( dst_ds.GetGeoTransform() )
                 
-            if (dst_ds.RasterCount == 4):
-                gray = cv2.cvtColor(rgb, cv2.COLOR_BGRA2GRAY)
-                data.GetRasterBand(1).WriteArray( gray )
+                if (noData):
+                    data.GetRasterBand(1).SetNoDataValue(noData)
                 
-            elif (bands == 2 or bands > 4 ):
-                print(len(bands)," channel images are not supported")   
-                
-            dst_ds = None
-            ImgList.append(data)  
-    
-            stats = data.GetRasterBand(1).GetStatistics(True, True)
-            print("gray " ": min: ", stats[0], "max: ", stats[1])
-            proc_hist_list.append( cv2.calcHist([data.GetRasterBand(1).ReadAsArray()],[0],None, [int(stats[1]) - int(stats[0]) +1], [stats[0], stats[1]]))
-        Tools.DATA = ImgList
+                if (bands == 1):
+                    data.GetRasterBand(1).WriteArray( rgb )
+                                        
+                if (bands == 3):
+                    gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+                    data.GetRasterBand(1).WriteArray( gray )
+                    
+                if (bands == 4):
+                    gray = cv2.cvtColor(rgb, cv2.COLOR_BGRA2GRAY)
+                    data.GetRasterBand(1).WriteArray( gray )
+                    
+                elif (bands == 2 or bands > 4 ):
+                    print(len(bands)," channel images are not supported")   
+                    
+                dst_ds = None
+                ImgList.append(data)  
+        
+                stats = data.GetRasterBand(1).GetStatistics(True, True)
+                print(stats)
+                print("gray " ": min: ", stats[0], "max: ", stats[1])
+                proc_hist_list.append( cv2.calcHist([data.GetRasterBand(1).ReadAsArray()],[0],None, [int(stats[1]) - int(stats[0]) +1], [stats[0], stats[1]]))
+            Tools.DATA = ImgList
     return hist_list, proc_hist_list
 
 '''
