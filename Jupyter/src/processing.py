@@ -112,7 +112,6 @@ def Project2WGS84(pointX, pointY, pointZ, inputEPSG):
     Z = point.GetZ()
     return(X, Y, Z)
 
-
 def remap(array, noData):
     MIN = 0
     if noData:
@@ -125,15 +124,12 @@ def remap(array, noData):
     if MIN < 0 or array.max() > 255:
         oldrange = array.max() - MIN
         if oldrange != 0:
-            print('remapping')
             for i, d in enumerate(array):
                 array[i] = (((d - MIN) * 255) / oldrange) 
         else:
             array.fill(0)
     return(array.astype(np.uint8))
     
-    
-
 #==============================================================================
 def PrepareImages(Tools):
     Tools.RAW_IMG = []
