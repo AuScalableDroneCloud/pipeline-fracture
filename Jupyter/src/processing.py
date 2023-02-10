@@ -173,7 +173,7 @@ def PrepareImages(Tools):
                         dst_ds.SetGeoTransform( dataset.GetGeoTransform() )
 
                         for i, b in enumerate(bands):
-                            d = remap( b.ReadAsArray() )
+                            d = remap( b.ReadAsArray(), b.GetNoDataValue() )
                             dst_ds.GetRasterBand(i+1).WriteArray(d)
                         bands = [dst_ds.GetRasterBand(k + 1) for k in range(dst_ds.RasterCount)]
                         
