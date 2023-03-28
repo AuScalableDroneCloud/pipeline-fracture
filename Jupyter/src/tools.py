@@ -40,9 +40,9 @@ class Tools:
     E_FEATURES = []
     
     #preparation
-    RESIZE = False
+    RESIZE = True
     PERCE = 100
-    DETAIL = False
+    MAXDIM = 2048 #Max image width or height for auto-resize
     SIG_S = 8
     SIG_R = 0.15
     GAMMA = False
@@ -105,6 +105,7 @@ class Tools:
         style = {'description_width': 'initial'}
         types = ["Resize", "DetailEnhance", "GammaCorrection", "WhiteBalance"]
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
+        checkboxes[0].value = True #Resize default to True
         
         resize = w.IntText(value = self.PERCE, placeholder = self.PERCE, description='[%]:',style=style, disabled=False)
         sig_s = w.BoundedFloatText(value = self.SIG_R, placeholder = self.SIG_S, min = 0, max = 200, step=0.1, description='sig_s:',style=style, disabled=False)
@@ -585,7 +586,7 @@ class Tools:
             print("written image ", filename)
             Tools.GEOTIF = path
             outdata = None
-       
+
 #WEBODM_part-------------------------------------------------------------------
     def GetAssets(self, project, task):
         Tools.FILE = []
@@ -621,7 +622,7 @@ class Tools:
                         Tools.FILE = []
                         Tools.FILE.append( d )
         file.observe(on_change)
-        
+
 #CSIRO DAP---------------------------------------------------------------------
     def MetaData(self):
         types = ["JSON", "CSIRO DAP (test)", "TERN"]
@@ -673,8 +674,5 @@ class Tools:
         
 
         
-        
-        
-        
-        
+
         

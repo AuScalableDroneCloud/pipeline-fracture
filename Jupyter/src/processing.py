@@ -129,7 +129,7 @@ def remap(array, noData):
         else:
             array.fill(0)
     return(array.astype(np.uint8))
-    
+
 #==============================================================================
 def PrepareImages(Tools):
     Tools.RAW_IMG = []
@@ -227,6 +227,13 @@ def PrepareImages(Tools):
                 bands = dst_ds.RasterCount        
                 if (Tools.RESIZE):
                     print('resizing')
+                    #If resize enabled but percentage set to 100, calculate the ratio automatically
+                    #based on a maximum dimension of MAXDIM
+                    if Tools.PERCE == 100:
+                        #Auto resize calc
+                        largest = max(dst_ds.RasterXSize, dst_ds.RasterYSize)
+                        Tools.PERCE = 100 * Tools.MAXDIM // largest
+                        print(f"Auto-resize to: {Tools.PERCE}%")
                     #TODO: double check this!!!!!
                     width = int(dst_ds.RasterXSize * Tools.PERCE / 100)
                     height = int(dst_ds.RasterYSize * Tools.PERCE / 100)
@@ -367,7 +374,7 @@ def ImgSizes(images):
         s.append(img.shape)
     [res.append(i) for i in s if i not in res]
     return(res)
-      
+
 
 #Generating shearlet sysyems and detecting features----------------------------
 '''
@@ -743,7 +750,7 @@ def WritePolyline2SHP(graph, dataset, outputFile, tolerance):
         lyr.CreateFeature(feat) 
         feat.Destroy()
     ds = None
-    
+
 # +
 def WritePoints2SHP(graph, dataset, outputFile, tolerance): 
     #first convert the graph vertices into numpy array
