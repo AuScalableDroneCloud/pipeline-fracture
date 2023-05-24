@@ -899,3 +899,4 @@ def HillShade(img):
                 print(i)
                 #coefs = poly.polyfit(x, y, 4)
                 #ffit = poly.polyval(x_new, coefs)
+
