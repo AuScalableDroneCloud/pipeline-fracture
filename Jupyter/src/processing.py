@@ -80,8 +80,6 @@ def CheckDetectionParams(offset):
             new_offset.remove(off)
     return(new_offset)
 
-
-
 def ReadMetaData(name):
     lis = []
     img = None
@@ -98,7 +96,6 @@ def ReadMetaData(name):
                 data = data.decode().strip('\x00')   
             lis.append( (f'{tag}', f'{data}') )
     return(lis)
-
 
 def Project2WGS84(pointX, pointY, pointZ, inputEPSG):
     point = ogr.Geometry(ogr.wkbPoint)
@@ -175,24 +172,23 @@ def PrepareImages(Tools):
                         
                         for i, b in enumerate(bands):  
                             stats = b.GetStatistics(True, True)
-                            print("band ",i+1, ": min: ", stats[0], "max: ", stats[1])
-                            if (int(stats[0]) != 0 and int(stats[1]) !=0):
-                                if(stats[0] != stats[1]):
-                                    hist = cv2.calcHist([b.ReadAsArray()],[0],None, [int(stats[1]) - int(stats[0]) +1], [stats[0], stats[1]])
-                                    hist_list.append(hist)
+                            print("band ",i+1, ": min: ", stats[0], "max: ", stats[1])                            
+                            B = b.ReadAsArray()
+                            #hist = cv2.calcHist([B],[0],None, [int(stats[1]) - int(stats[0]) +1], [stats[0], stats[1]])
+                            hist = cv2.calcHist([B],[0],None, [255], (0,255))
+                            hist_list.append(hist)
                         Tools.RAW_IMG.append(dst_ds)    #keep intial raster data
                     dataset = None
                 else:
                     noData = None
                     print("processing non-geotagged images...")
                     rgb = cv2.imread(img, cv2.IMREAD_UNCHANGED) 
-                    
+                    rgb = rgb.astype(np.uint8)
                     s = rgb.shape
                     if len(s) == 2:
                         b = 1
                     if len(s) > 2:
                         b = s[2]
-                    
                     print("with ", b, " channels")
                     
                     GeoT = np.zeros(6)
@@ -225,15 +221,17 @@ def PrepareImages(Tools):
             print('preparing image')  
             if (dst_ds):      
                 bands = dst_ds.RasterCount        
-                if (Tools.RESIZE):
+                if (Tools.RESIZE and Tools.PERCE != 100):
                     print('resizing')
                     #If resize enabled but percentage set to 100, calculate the ratio automatically
                     #based on a maximum dimension of MAXDIM
-                    if Tools.PERCE == 100:
+                    '''
+                    if Tools.PERCE != 100:
                         #Auto resize calc
                         largest = max(dst_ds.RasterXSize, dst_ds.RasterYSize)
                         Tools.PERCE = 100 * Tools.MAXDIM // largest
                         print(f"Auto-resize to: {Tools.PERCE}%")
+                    '''
                     #TODO: double check this!!!!!
                     width = int(dst_ds.RasterXSize * Tools.PERCE / 100)
                     height = int(dst_ds.RasterYSize * Tools.PERCE / 100)
@@ -338,13 +336,13 @@ def ReadImage(Tools):
                 
             if (Tools.SHARPE):
                 kernel = np.array([[-1,-1,-1], 
-                                   [-1,9,-1], 
+                                   [-1, 9,-1], 
                                    [-1,-1,-1]])
                 gray = cv2.filter2D(gray, -1, kernel)
          
             if ( Tools.EDGE ):
                 m_filter = np.array([[0,0,-1,0,0],
-                                     [0,-1,-2,-1,0],
+                                     [ 0,-1,-2,-1,0],
                                      [-1,-2,16,-2,-1],
                                      [0,-1,-2,-1,0],
                                      [0,0,-1,0,0]])
@@ -561,7 +559,10 @@ def DetectFeatures(Tools):
              with ProcessPoolExecutor(max_workers = mw) as executor:
                  for r, o in executor.map(Detect, fp): 
                      thinned_f = mask(r, thin_mask(r))
-                     detected = np.add(detected, thinned_f)
+                     if not np.isnan(thinned_f.any()):
+                         detected = np.add(detected, thinned_f)
+                     else:
+                        print('founnd NaN')
                      
          if (Tools.EDGES):
             print('detecting edges ', i+1, '/', len(Tools.DATA3))
@@ -582,8 +583,11 @@ def DetectFeatures(Tools):
             with ProcessPoolExecutor(max_workers = mw) as executor:
                 for r, o in executor.map(Detect, fp): 
                     thinned_f = mask(r, thin_mask(r))
-                    #thinned_f = CleanIntensityMap(thinned_f)
-                    detected = np.add(detected, thinned_f)  
+                    if not np.isnan(thinned_f.any()):
+                         detected = np.add(detected, thinned_f)
+                    else:
+                        print('founnd NaN')
+
          norm = np.zeros(img[0].shape, np.double)
          normalized = cv2.normalize(detected, norm, 1.0, 0.0, cv2.NORM_MINMAX, dtype=cv2.CV_32F)          
          data.GetRasterBand(1).WriteArray(normalized)
@@ -835,68 +839,4 @@ def DynamicRangeCompression(img_list, c = 40):
     return(DRC)
 
 #------------------------------------------------------------------------------
-'''
-processing.runalg('grass:r.mapcalculator',
-                  {"amap": gPb_rlayer,
-                   "formula": "if(A>0, 1, null())",
-                   "GRASS_REGION_PARAMETER": "%f,%f,%f,%f" % (xmin, xmax, ymin, ymax),
-                   "GRASS_REGION_CELLSIZE_PARAMETER": 1,
-                   "outfile": mapcalc})
-
-
-
-processing.runalg('grass7:r.thin',
-                  {"input": mapcalc,
-                   "GRASS_REGION_PARAMETER": "%f,%f,%f,%f" % (xmin, xmax, ymin, ymax),
-                   "output": thinned})
-
-processing.runalg('grass7:r.to.vect',
-                  {"input": thinned,
-                   "type": 0,
-                   "GRASS_OUTPUT_TYPE_PARAMETER": 2,
-                   "GRASS_REGION_PARAMETER": "%f,%f,%f,%f" % (xmin, xmax, ymin, ymax),
-                   "output": centerlines})
-
-'''
-
-
-def HillShade(img):  
-    from matplotlib.colors import LightSource
-    import matplotlib.pyplot as plt
-    z = img
-    dx, dy = dem['dx'], dem['dy']
-    dy = 111200 * dy
-    dx = 111200 * dx * np.cos(np.radians(dem['ymin']))
-    
-    # Shade from the northwest, with the sun 45 degrees from horizontal
-    ls = LightSource(azdeg=315, altdeg=45)
-    cmap = plt.cm.gist_earth
-    
-    fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(8, 9))
-    plt.setp(axs.flat, xticks=[], yticks=[])
-    
-    # Vary vertical exaggeration and blend mode and plot all combinations
-    for col, ve in zip(axs.T, [0.1, 1, 10]):
-        # Show the hillshade intensity image in the first row
-        col[0].imshow(ls.hillshade(z, vert_exag=ve, dx=dx, dy=dy), cmap='gray')
-    
-        # Place hillshaded plots with different blend modes in the rest of the rows
-        for ax, mode in zip(col[1:], ['hsv', 'overlay', 'soft']):
-            rgb = ls.shade(z, cmap=cmap, blend_mode=mode,
-                           vert_exag=ve, dx=dx, dy=dy)
-            ax.imshow(rgb)
-    
-    
-    def PolylineFitting(img_list, filename, tolerance):
-        import numpy.polynomial.polynomial as poly
-        for img in img_list:
-            data = img.GetRasterBand(1).ReadAsArray()
-            
-            nb_components, output, stats, centroids  = cv2.connectedComponentsWithStats(data.astype("uint8"), 4)
-    
-            for i in nb_components:
-                
-                print(i)
-                #coefs = poly.polyfit(x, y, 4)
-                #ffit = poly.polyval(x_new, coefs)
 

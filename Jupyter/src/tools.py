@@ -43,7 +43,7 @@ class Tools:
     RESIZE = True
     PERCE = 100
     MAXDIM = 2048 #Max image width or height for auto-resize
-    SIG_S = 8
+    SIG_S = 10
     SIG_R = 0.15
     GAMMA = False
     GAM_C = 1.0
@@ -107,9 +107,9 @@ class Tools:
         checkboxes = [w.Checkbox(value=False, description=t) for t in types]
         checkboxes[0].value = True #Resize default to True
         
-        resize = w.IntText(value = self.PERCE, placeholder = self.PERCE, description='[%]:',style=style, disabled=False)
-        sig_s = w.BoundedFloatText(value = self.SIG_R, placeholder = self.SIG_S, min = 0, max = 200, step=0.1, description='sig_s:',style=style, disabled=False)
-        sig_r = w.BoundedFloatText(value = self.SIG_S, placeholder = self.SIG_R, min = 0, max = 1,   step=0.01,description='sig_r:',style=style, disabled=False)
+        resize = w.BoundedIntText(value = self.PERCE, placeholder = self.PERCE, min = 10, max = 100, description='[%]:',style=style, disabled=False)
+        sig_s = w.BoundedFloatText(value = self.SIG_S, placeholder = self.SIG_S, min = 0, max = 200, step = 1, description='sig_s:',style=style, disabled=False)
+        sig_r = w.BoundedFloatText(value = self.SIG_R, placeholder = self.SIG_R, min = 0, max = 1,   step = 0.1,description='sig_r:',style=style, disabled=False)
         detail = w.HBox([sig_r, sig_s ])
         gamma = w.FloatText(value  = self.GAM_C, placeholder = self.GAM_C,  description='gamma:',style=style, disabled=False)
         white = w.FloatText(value  = self.W_THR, placeholder = self.W_THR,  description='thresh:',style=style, disabled=False)
@@ -599,9 +599,12 @@ class Tools:
         import asdc
         for i in assests:
             r = asdc.download_asset(i, project=project, task=task)
-            if r and "orthophoto" in i or "dsm" in i:
+            if r and "orthophoto" in i:
                 Tools.ASSETS.append( str(i) )     
-                print('added', i, 'to downloaded assets.')  
+                print('added', i, 'to downloaded assets.') 
+            if r and "dsm" in i:
+                Tools.ASSETS.append( str(i) )     
+                print('added', i, 'to downloaded assets.') 
         if (len(Tools.ASSETS) > 0):
             Tools.FILE.append( Tools.ASSETS[0])
         else:
@@ -676,4 +679,3 @@ class Tools:
         
 
         
-
