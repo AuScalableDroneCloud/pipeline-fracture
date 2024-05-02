@@ -1,0 +1,224 @@
+metadata
+
+metadata 
+{
+	"name": "Structural Geology",
+	"description": "Fracture detection with Complex Shearlet Transform based on https://github.com/rahulprabhakaran/Automatic-Fracture-Detection-Code Using the Python port of the Matlab Toolbox Complex Shearlet-Based Ridge and Edge Measurement by Rafael Reisenhofer: https://github.com/rgcda/PyCoShREM",
+	"notebook": {
+		"file": "CoSh_ensemble_webodm.ipynb",
+		"version": 1.0,
+		"parameters": {
+			"waveletEffSupp": 60.0,
+			"gaussianEffSupp": 20.0,
+			"scalesPerOctave": 4.0,
+			"shearLevel": 3.0,
+			"alpha": 0.2,
+			"octaves": 3.5,
+			"minContrast": 5.6,
+			"offset": 1.2,
+			"scalesUsedForPivotSearch": 1.0,
+			"min pixel value": 1.0,
+			"kernel size": 1024,
+			"min cluster size": 4098
+		},
+		"assets": [{
+				"type": "input",
+				"description": "",
+				"name": "orthomosaic",
+				"format": "tif"
+			}, {
+				"type": "output",
+				"description": "",
+				"name": "polyFile",
+				"format": "shp"
+			},
+			{
+				"type": "output",
+				"description": "edge graph dot file",
+				"name": "graph.dot",
+				"format": "dot"
+			},
+			{
+				"type": "output",
+				"description": "A even-symmetric real-valued shearlet",
+				"name": "fracture.png",
+				"format": "png"
+			}
+		]
+	},
+	"author": "Uli Kelka",
+	"organisation": "CSIRO ",
+	"licence": {
+		"name": "It is distributed under BSD 3-Clause License"
+	},
+	"run": {
+		"date": "15 September 2022",
+		"duration": 36000
+	}
+}
+
+metadata - projection 
+{
+	"name": "Structural Geology",
+	"description": "Fracture detection with Complex Shearlet Transform based on https://github.com/rahulprabhakaran/Automatic-Fracture-Detection-Code Using the Python port of the Matlab Toolbox Complex Shearlet-Based Ridge and Edge Measurement by Rafael Reisenhofer: https://github.com/rgcda/PyCoShREM",
+	"notebook": {
+		"file": "CoSh_ensemble_webodm.ipynb",
+		"version": 1.0,
+		"Georeference info": [{
+			"Projection ": "GEOGCS[\"GCS_GEOCENTRIC_DATUM_of_AUSTRALIA\",DATUM[\"Geocentric_Datum_of_Australia_1994\",SPHEROID[\"GRS80\",6378137,298.257222101,AUTHORITY[\"EPSG\",\"7019\"]],AUTHORITY[\"EPSG\",\"6283\"]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+			"Geotransform ": [134.1728775, 0.00041699999999998157, 0.0, -31.2856335, 0.0, -0.00041699999999998157],
+			"Bounding Coodinates": [
+				[-31.28561984738199, 134.17288566907771],
+				[-31.147592847381997, 134.03485866907772]
+			],
+			"Image metadata": [
+				["ImageWidth", "331"],
+				["ImageLength", "331"],
+				["BitsPerSample", "32"],
+				["Compression", "1"],
+				["33922", "(0.0, 0.0, 0.0, 134.1728775, -31.2856335, 0.0)"],
+				["42113", "-999999"],
+				["PhotometricInterpretation", "1"],
+				["42112", "<GDALMetadata>\n  <Item name=\"DataType\">Generic</Item>\n  <Item name=\"RepresentationType\" sample=\"0\">ATHEMATIC</Item>\n</GDALMetadata>\n"],
+				["33550", "(0.00041699999999998157, 0.00041699999999998157, 0.0)"],
+				["SamplesPerPixel", "1"],
+				["PlanarConfiguration", "1"],
+				["34735", "(1, 1, 0, 12, 1024, 0, 1, 2, 1025, 0, 1, 1, 2048, 0, 1, 32767, 2049, 34737, 102, 0, 2050, 0, 1, 6283, 2051, 0, 1, 8901, 2054, 0, 1, 9102, 2055, 34736, 1, 0, 2057, 34736, 1, 1, 2059, 34736, 1, 2, 2061, 34736, 1, 3, 3073, 34737, 181, 102)"],
+				["34736", "(0.0174532925199433, 6378137.0, 298.257222101, 0.0)"],
+				["34737", "GCS Name = GCS_GEOCENTRIC_DATUM_of_AUSTRALIA|Datum = D_GDA_1994|Ellipsoid = GRS80|Primem = Greenwich||ESRI PE String = GEOGCS[\"GCS_GEOCENTRIC_DATUM_of_AUSTRALIA\",DATUM[\"D_GDA_1994\",SPHEROID[\"GRS80\",6378137.0,298.257222101]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]]|"],
+				["TileWidth", "128"],
+				["TileLength", "128"],
+				["TileOffsets", "(782, 66318, 131854, 197390, 262926, 328462, 393998, 459534, 525070)"],
+				["TileByteCounts", "(65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536)"],
+				["SampleFormat", "3"]
+			]
+		}],
+		"parameters": [{
+			"edges": false,
+			"ridges": true,
+			" positive": false,
+			" negative": true,
+			"waveletEffSupp": "100 px",
+			"gaussianEffSupp": "50 px",
+			"scalesPerOctave": "2",
+			"shearLevel": "3",
+			"alpha": "1",
+			"octaves": "3.5",
+			"minContrast": "5",
+			"offset": "1",
+			"scalesUsedForPivotSearch": "all",
+			"min pixel value": 0.0,
+			"min cluster size": "1 px"
+		}],
+		"assets": [{
+			"type": "input",
+			"title": "Structural Geology",
+			"creator": "kel321",
+			"description": "orthomosaic",
+			"name": "test/mag.tif",
+			"format": ".tif"
+		}, {
+			"type": "output",
+			"title": "Structural Geology",
+			"creator": "Uli Kelka",
+			"description": "Intensity map",
+			"name": "test1b",
+			"format": ""
+		}, {
+			"type": "output",
+			"title": "Structural Geology",
+			"creator": "kel321",
+			"description": "shape file",
+			"name": "test2b",
+			"format": ""
+		}]
+	},
+	"author": "Uli Kelka",
+	"organisation": "CSIRO ",
+	"licence": {
+		"name": "It is distributed under BSD 3-Clause License"
+	},
+	"run": {
+		"date": "2023-01-19"
+	}
+}
+
+metadata - sensor 
+{
+	"name": "Structural Geology",
+	"description": "Fracture detection with Complex Shearlet Transform based on https://github.com/rahulprabhakaran/Automatic-Fracture-Detection-Code Using the Python port of the Matlab Toolbox Complex Shearlet-Based Ridge and Edge Measurement by Rafael Reisenhofer: https://github.com/rgcda/PyCoShREM",
+	"notebook": {
+		"file": "CoSh_ensemble_webodm.ipynb",
+		"version": 1.0,
+		"Georeference info": [{
+			"Projection ": null,
+			"Geotransform ": null,
+			"Bounding Coodinates": null,
+			"Image metadata": [
+				["GPSInfo", "686"],
+				["ResolutionUnit", "2"],
+				["ExifOffset", "182"],
+				["ImageDescription", "DCIM\\100MEDIA\\DJI_0115.JPG"],
+				["Make", "DJI"],
+				["Model", "FC6310"],
+				["Software", "v01.07.1641"],
+				["Orientation", "1"],
+				["DateTime", "2018:03:30 10:11:19"],
+				["YCbCrPositioning", "1"],
+				["XResolution", "72.0"],
+				["YResolution", "72.0"],
+				["XPComment", "Type=N, Mode=P, DE=None"],
+				["XPKeywords", "v01.07.1641;1.2.0;v1.0.0"]
+			]
+		}],
+		"parameters": [{
+			"edges": false,
+			"ridges": true,
+			" positive": false,
+			" negative": true,
+			"waveletEffSupp": "100 px",
+			"gaussianEffSupp": "50 px",
+			"scalesPerOctave": "2",
+			"shearLevel": "3",
+			"alpha": "1",
+			"octaves": "3.5",
+			"minContrast": "5",
+			"offset": "1",
+			"scalesUsedForPivotSearch": "all",
+			"min pixel value": 0.0,
+			"min cluster size": "1 px"
+		}],
+		"assets": [{
+			"type": "input",
+			"title": "Structural Geology",
+			"creator": "kel321",
+			"description": "orthomosaic",
+			"name": "test/DJI_0115.JPG",
+			"format": ".JPG"
+		}, {
+			"type": "output",
+			"title": "Structural Geology",
+			"creator": "Uli Kelka",
+			"description": "Intensity map",
+			"name": "test1",
+			"format": ""
+		}, {
+			"type": "output",
+			"title": "Structural Geology",
+			"creator": "kel321",
+			"description": "shape file",
+			"name": "test2",
+			"format": ""
+		}]
+	},
+	"author": "Uli Kelka",
+	"organisation": "CSIRO ",
+	"licence": {
+		"name": "It is distributed under BSD 3-Clause License"
+	},
+	"run": {
+		"date": "2023-01-19"
+	}
+}
+
+     
